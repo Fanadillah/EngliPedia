@@ -15,7 +15,6 @@ const navItems = [
   { href: "/saved", icon: Heart, label: "Tersimpan" },
   { href: "/achievements", icon: Trophy, label: "Pencapaian" },
   { href: "/statistics", icon: BarChart3, label: "Statistik" },
-  { href: "/profile", icon: User, label: "Profil" },
 ];
 
 export function Sidebar() {

@@ -20,7 +20,25 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      loadGamificationFromCloud().then((data) => setCloudData(data));
+      loadGamificationFromCloud().then((cloudData) => {
+        const local = loadState();
+        if (cloudData) {
+          setCloudData({
+            ...local,
+            totalXp: Math.max(local.totalXp, cloudData.totalXp),
+            streak: Math.max(local.streak, cloudData.streak),
+            masteredWords: Math.max(local.masteredWords, cloudData.masteredWords),
+            viewedWords: Math.max(local.viewedWords, cloudData.viewedWords),
+            completedSessions: Math.max(local.completedSessions, cloudData.completedSessions),
+            lastActiveDate: cloudData.lastActiveDate || local.lastActiveDate,
+            dailyXp: Math.max(local.dailyXp, cloudData.dailyXp),
+            dailyXpDate: cloudData.dailyXpDate || local.dailyXpDate,
+            lastSessionDate: cloudData.lastSessionDate || local.lastSessionDate,
+          });
+        } else {
+          setCloudData(local);
+        }
+      });
     } else {
       setCloudData(null);
     }
