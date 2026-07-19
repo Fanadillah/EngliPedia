@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LogIn, Bell, Volume2, LogOut, User, Sparkles, Mail, Calendar } from "lucide-react";
+import { LogIn, Bell, Volume2, LogOut, User, Sparkles, Mail, Calendar, Download, RefreshCw, Smartphone } from "lucide-react";
 import { ProfileEmptyIllustration } from "@/components/illustrations";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 import { useAuth } from "@/components/auth/auth-context";
@@ -17,6 +17,31 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
   const [cloudData, setCloudData] = useState<GamificationState | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+
+    // Check for service worker updates
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg) {
+          reg.addEventListener("updatefound", () => setUpdateAvailable(true));
+          if (reg.waiting) setUpdateAvailable(true);
+        }
+      });
+    }
+
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -46,6 +71,32 @@ export default function ProfilePage() {
 
   const stats = cloudData || loadState();
   const levelInfo = xpProgress(stats.totalXp);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setCanInstall(false);
+      setDeferredPrompt(null);
+    }
+  };
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg?.waiting) {
+        reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+    }
+    // Clear caches and reload
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+    window.location.reload();
+  };
 
   if (authLoading) {
     return (
@@ -249,6 +300,57 @@ export default function ProfilePage() {
                   <p className="text-[11px] text-muted-foreground">Normal (1x)</p>
                 </div>
               </div>
+            </div>
+
+            {/* PWA Section */}
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground">Aplikasi</span>
+              </div>
+
+              {canInstall && (
+                <button
+                  onClick={handleInstall}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Download className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium">Install Aplikasi</p>
+                    <p className="text-[11px] text-muted-foreground">Tambahkan ke layar utama</p>
+                  </div>
+                </button>
+              )}
+
+              {updateAvailable && (
+                <button
+                  onClick={handleUpdate}
+                  disabled={updating}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/30 border border-amber-200 dark:border-amber-900/30 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <RefreshCw className={`w-4 h-4 text-amber-600 dark:text-amber-400 ${updating ? "animate-spin" : ""}`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Update Tersedia</p>
+                    <p className="text-[11px] text-amber-600/70 dark:text-amber-400/70">Klik untuk memperbarui aplikasi</p>
+                  </div>
+                </button>
+              )}
+
+              {!canInstall && !updateAvailable && (
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-muted/30">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                    <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Aplikasi sudah terinstall</p>
+                    <p className="text-[11px] text-muted-foreground">Versi terbaru sedang digunakan</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
