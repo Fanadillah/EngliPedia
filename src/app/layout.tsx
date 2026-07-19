@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: "Englipedia - Kosakata Bahasa Inggris",
   description: "Belajar kosakata Bahasa Inggris dengan cara baca Indonesia",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
