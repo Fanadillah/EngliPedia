@@ -145,6 +145,7 @@ export default function WordDetailPage() {
               Kembali
             </Button>
             <div className="flex gap-1.5">
+              <WordSaveButton wordId={word.id} />
               <Button
                 variant="ghost"
                 size="icon"
