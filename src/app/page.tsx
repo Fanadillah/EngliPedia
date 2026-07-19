@@ -24,6 +24,8 @@ import { motion } from "motion/react";
 import { loadState, checkStreak } from "@/lib/gamification";
 import { useToast } from "@/components/ui/toast-provider";
 
+import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
+
 const motivationalQuotes = [
   "Siap belajar hari ini?",
   "Setiap kata adalah langkah baru!",
@@ -133,9 +135,7 @@ export default function Home() {
                 <h1 className="text-2xl font-bold">Englipedia</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">{quote}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
+              <DarkModeToggle variant="icon" />
             </div>
           </div>
 
