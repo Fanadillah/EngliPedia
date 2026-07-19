@@ -32,6 +32,7 @@ export interface Database {
           meaning_id?: string;
           definition?: string;
           example?: string;
+          example_id?: string;
           frequency?: number;
           cara_baca?: string;
           level?: "basic" | "intermediate" | "advanced";
@@ -92,6 +93,13 @@ export interface Database {
           streak: number;
           total_words: number;
           mastered_words: number;
+          total_xp: number;
+          last_active_date: string;
+          daily_xp: number;
+          daily_xp_date: string;
+          viewed_words: number;
+          completed_sessions: number;
+          last_session_date: string;
           created_at: string;
         };
         Insert: {
@@ -102,6 +110,13 @@ export interface Database {
           streak?: number;
           total_words?: number;
           mastered_words?: number;
+          total_xp?: number;
+          last_active_date?: string;
+          daily_xp?: number;
+          daily_xp_date?: string;
+          viewed_words?: number;
+          completed_sessions?: number;
+          last_session_date?: string;
           created_at?: string;
         };
         Update: {
@@ -112,6 +127,33 @@ export interface Database {
           streak?: number;
           total_words?: number;
           mastered_words?: number;
+          total_xp?: number;
+          last_active_date?: string;
+          daily_xp?: number;
+          daily_xp_date?: string;
+          viewed_words?: number;
+          completed_sessions?: number;
+          last_session_date?: string;
+          created_at?: string;
+        };
+      };
+      user_saved_words: {
+        Row: {
+          id: string;
+          user_id: string;
+          word_id: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          word_id: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          word_id?: number;
           created_at?: string;
         };
       };

@@ -4,46 +4,30 @@ import { createClient } from "@/utils/supabase/client";
 import type { GamificationState } from "@/lib/gamification";
 import { getSavedIds } from "@/lib/saved-words";
 
-// Helper to get a reference for custom tables not yet in Database types
-function db() {
-  return createClient() as any;
-}
+const client = () => createClient() as any;
 
 // ─── Sync Gamification to Cloud ─────────────────────────────────────────
 
 export async function syncGamificationToCloud(state: GamificationState): Promise<void> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await client().auth.getUser();
   if (!user) return;
 
-  const client = db();
-
-  // Get current profile data first (to merge)
-  const { data: profile } = await client
+  const { error } = await client()
     .from("user_profiles")
-    .select("total_xp, streak, last_active_date, daily_xp, daily_xp_date, mastered_words, viewed_words, completed_sessions, last_session_date, total_words")
-    .eq("id", user.id)
-    .single();
-
-  const p = profile || {};
-
-  // Merge: take the max of local and cloud values
-  const merged = {
-    total_xp: Math.max(state.totalXp, p.total_xp || 0),
-    streak: Math.max(state.streak, p.streak || 0),
-    last_active_date: state.lastActiveDate || p.last_active_date || "",
-    daily_xp: Math.max(state.dailyXp, p.daily_xp || 0),
-    daily_xp_date: state.dailyXpDate || p.daily_xp_date || "",
-    mastered_words: Math.max(state.masteredWords, p.mastered_words || 0),
-    viewed_words: Math.max(state.viewedWords, p.viewed_words || 0),
-    completed_sessions: Math.max(state.completedSessions, p.completed_sessions || 0),
-    last_session_date: state.lastSessionDate || p.last_session_date || "",
-    total_words: Math.max(state.masteredWords, p.total_words || 0),
-  };
-
-  const { error } = await client
-    .from("user_profiles")
-    .upsert({ id: user.id, email: user.email || "", ...merged });
+    .upsert({
+      id: user.id,
+      email: user.email || "",
+      total_xp: state.totalXp,
+      streak: state.streak,
+      last_active_date: state.lastActiveDate,
+      daily_xp: state.dailyXp,
+      daily_xp_date: state.dailyXpDate,
+      mastered_words: state.masteredWords,
+      viewed_words: state.viewedWords,
+      completed_sessions: state.completedSessions,
+      last_session_date: state.lastSessionDate,
+      total_words: state.masteredWords,
+    }, { onConflict: "id" });
 
   if (error) {
     console.error("Failed to sync gamification:", error);
@@ -53,16 +37,13 @@ export async function syncGamificationToCloud(state: GamificationState): Promise
 // ─── Sync Saved Words to Cloud ──────────────────────────────────────────
 
 export async function syncSavedWordsToCloud(): Promise<void> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await client().auth.getUser();
   if (!user) return;
 
   const localIds = getSavedIds();
   if (localIds.length === 0) return;
 
-  const client = db();
-
-  const { data: existing } = await client
+  const { data: existing } = await client()
     .from("user_saved_words")
     .select("word_id")
     .eq("user_id", user.id);
@@ -71,7 +52,7 @@ export async function syncSavedWordsToCloud(): Promise<void> {
   const newWords = localIds.filter((id) => !existingIds.has(id));
   if (newWords.length === 0) return;
 
-  const { error } = await client
+  const { error } = await client()
     .from("user_saved_words")
     .insert(newWords.map((word_id) => ({ user_id: user.id, word_id })));
 
@@ -83,13 +64,10 @@ export async function syncSavedWordsToCloud(): Promise<void> {
 // ─── Load Gamification from Cloud ───────────────────────────────────────
 
 export async function loadGamificationFromCloud(): Promise<GamificationState | null> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await client().auth.getUser();
   if (!user) return null;
 
-  const client = db();
-
-  const { data: profile } = await client
+  const { data: profile } = await client()
     .from("user_profiles")
     .select("*")
     .eq("id", user.id)
@@ -117,13 +95,10 @@ export async function loadGamificationFromCloud(): Promise<GamificationState | n
 // ─── Load Saved Words from Cloud ────────────────────────────────────────
 
 export async function loadSavedWordsFromCloud(): Promise<number[]> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await client().auth.getUser();
   if (!user) return [];
 
-  const client = db();
-
-  const { data } = await client
+  const { data } = await client()
     .from("user_saved_words")
     .select("word_id")
     .eq("user_id", user.id)
@@ -135,11 +110,10 @@ export async function loadSavedWordsFromCloud(): Promise<number[]> {
 // ─── Update Single XP Value to Cloud ────────────────────────────────────
 
 export async function updateXpToCloud(field: string, value: number): Promise<void> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await client().auth.getUser();
   if (!user) return;
 
-  await db()
+  await client()
     .from("user_profiles")
     .update({ [field]: value })
     .eq("id", user.id);
@@ -148,18 +122,15 @@ export async function updateXpToCloud(field: string, value: number): Promise<voi
 // ─── Toggle Saved Word in Cloud ─────────────────────────────────────────
 
 export async function toggleSavedWordInCloud(wordId: number, save: boolean): Promise<void> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await client().auth.getUser();
   if (!user) return;
 
-  const client = db();
-
   if (save) {
-    await client
+    await client()
       .from("user_saved_words")
       .upsert({ user_id: user.id, word_id: wordId });
   } else {
-    await client
+    await client()
       .from("user_saved_words")
       .delete()
       .eq("user_id", user.id)

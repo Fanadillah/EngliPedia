@@ -183,10 +183,48 @@ export function saveState(state: Partial<GamificationState>): GamificationState 
       lastSessionDate: merged.lastSessionDate,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+
+    // Trigger cloud sync in background (non-blocking)
+    triggerCloudSync(merged);
+
     return merged;
   } catch {
     return loadState();
   }
+}
+
+// Debounced cloud sync — avoids spamming Supabase on rapid updates
+let _syncTimeout: ReturnType<typeof setTimeout> | null = null;
+function triggerCloudSync(state: GamificationState) {
+  if (typeof window === "undefined") return;
+  if (_syncTimeout) clearTimeout(_syncTimeout);
+  _syncTimeout = setTimeout(async () => {
+    try {
+      const { createClient } = await import("@/utils/supabase/client");
+      const supabase = createClient() as any;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("user_profiles")
+        .upsert({
+          id: user.id,
+          email: user.email || "",
+          total_xp: state.totalXp,
+          streak: state.streak,
+          last_active_date: state.lastActiveDate,
+          daily_xp: state.dailyXp,
+          daily_xp_date: state.dailyXpDate,
+          mastered_words: state.masteredWords,
+          viewed_words: state.viewedWords,
+          completed_sessions: state.completedSessions,
+          last_session_date: state.lastSessionDate,
+          total_words: state.masteredWords,
+        }, { onConflict: "id" });
+    } catch {
+      // Silent fail — will retry on next save
+    }
+  }, 2000); // 2s debounce
 }
 
 // ─── Actions ────────────────────────────────────────────────────────────
