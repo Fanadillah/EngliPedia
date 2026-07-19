@@ -7,9 +7,12 @@ import { Home, Search, BookOpen, Heart, User, Trophy, BarChart3, Brain, X } from
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 
-const mainItems = [
+const leftItems = [
   { href: "/", icon: Home, label: "Beranda" },
   { href: "/search", icon: Search, label: "Cari" },
+];
+
+const rightItems = [
   { href: "/saved", icon: Heart, label: "Tersimpan" },
   { href: "/profile", icon: User, label: "Profil" },
 ];
@@ -105,7 +108,7 @@ export function BottomNav() {
       {/* Bottom nav bar */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border md:hidden z-50">
         <div className="flex justify-around items-center h-16">
-          {mainItems.map((item) => {
+          {leftItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
@@ -122,7 +125,7 @@ export function BottomNav() {
             );
           })}
 
-          {/* Latihan button with expand */}
+          {/* Latihan button — center */}
           <button
             onClick={() => setOpen(!open)}
             className={cn(
@@ -130,17 +133,28 @@ export function BottomNav() {
               isPracticeActive || open ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <div className="relative">
-              <BookOpen className="w-5 h-5" />
-              {open && (
-                <motion.div
-                  layoutId="latihan-dot"
-                  className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary"
-                />
-              )}
+            <div className="w-10 h-10 -mt-3 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
+              <BookOpen className="w-5 h-5 text-white" />
             </div>
             <span className="text-[10px] mt-1">Latihan</span>
           </button>
+
+          {rightItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex flex-col items-center justify-center w-full h-full transition-colors",
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[10px] mt-1">{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </>
