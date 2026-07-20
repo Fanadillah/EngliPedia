@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   ArrowRight,
+  BookMarked,
   Volume2,
   CheckCircle2,
   BookOpen,
@@ -469,7 +470,7 @@ export default function LessonPage() {
     );
   }
 
-  if (words.length === 0) {
+  if (words.length === 0 && lessonType !== "grammar") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50/50 via-purple-50/30 to-pink-50/50 dark:from-violet-950/20 dark:via-purple-950/10 dark:to-pink-950/20">
         <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
@@ -486,6 +487,11 @@ export default function LessonPage() {
 
   // ─── INTRO ────────────────────────────────────────────────────────
   if (step === "intro") {
+    const isGrammar = lessonType === "grammar";
+    const explanationCount = lessonContent.filter((c) => c.content_type === "explanation").length;
+    const exampleCount = lessonContent.filter((c) => c.content_type === "example").length;
+    const exerciseCount = lessonContent.filter((c) => c.content_type === "exercise").length;
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50/50 via-purple-50/30 to-pink-50/50 dark:from-violet-950/20 dark:via-purple-950/10 dark:to-pink-950/20">
         <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
@@ -494,35 +500,56 @@ export default function LessonPage() {
           </Link>
           <FadeIn>
             <div className="text-center py-16">
-              <div className="w-20 h-20 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mx-auto mb-6">
-                <BookOpen className="w-10 h-10 text-violet-500" />
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isGrammar ? "bg-indigo-100 dark:bg-indigo-900/30" : "bg-violet-100 dark:bg-violet-900/30"}`}>
+                {isGrammar ? <BookMarked className="w-10 h-10 text-indigo-500" /> : <BookOpen className="w-10 h-10 text-violet-500" />}
               </div>
               <h1 className="text-2xl font-bold text-foreground mb-2">{lessonTitle}</h1>
-              <p className="text-muted-foreground mb-2">{words.length} kata untuk dipelajari</p>
-              <div className="flex items-center justify-center gap-2 mb-6">
-                {words.slice(0, 5).map((w) => (
-                  <Badge key={w.id} className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">{w.word}</Badge>
-                ))}
-                {words.length > 5 && <Badge className="bg-gray-100 text-gray-600">+{words.length - 5}</Badge>}
-              </div>
 
-              {/* Activity overview */}
-              <div className="grid grid-cols-2 gap-3 mb-8 text-left max-w-sm mx-auto">
-                {[
-                  { icon: BookOpen, label: "Vocabulary", color: "text-violet-500" },
-                  { icon: Volume2, label: "Pronunciation", color: "text-blue-500" },
-                  { icon: Pen, label: "Fill in the Blank", color: "text-green-500" },
-                  { icon: Headphones, label: "Listening", color: "text-orange-500" },
-                  { icon: Type, label: "Writing", color: "text-pink-500" },
-                ].map((a) => (
-                  <div key={a.label} className="flex items-center gap-2 p-2 rounded-lg bg-white/50 dark:bg-gray-900/50">
-                    <a.icon className={`w-4 h-4 ${a.color}`} />
-                    <span className="text-xs font-medium text-foreground">{a.label}</span>
+              {isGrammar ? (
+                <>
+                  <p className="text-muted-foreground mb-2">
+                    {explanationCount} penjelasan · {exampleCount} contoh · {exerciseCount} latihan
+                  </p>
+                  <div className="grid grid-cols-3 gap-3 mb-8 text-center max-w-sm mx-auto">
+                    {[
+                      { label: "Penjelasan", count: explanationCount, color: "text-indigo-500" },
+                      { label: "Contoh", count: exampleCount, color: "text-blue-500" },
+                      { label: "Latihan", count: exerciseCount, color: "text-green-500" },
+                    ].map((a) => (
+                      <div key={a.label} className="p-3 rounded-lg bg-white/50 dark:bg-gray-900/50">
+                        <p className={`text-xl font-bold ${a.color}`}>{a.count}</p>
+                        <p className="text-xs text-muted-foreground">{a.label}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted-foreground mb-2">{words.length} kata untuk dipelajari</p>
+                  <div className="flex items-center justify-center gap-2 mb-6">
+                    {words.slice(0, 5).map((w) => (
+                      <Badge key={w.id} className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">{w.word}</Badge>
+                    ))}
+                    {words.length > 5 && <Badge className="bg-gray-100 text-gray-600">+{words.length - 5}</Badge>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mb-8 text-left max-w-sm mx-auto">
+                    {[
+                      { icon: BookOpen, label: "Vocabulary", color: "text-violet-500" },
+                      { icon: Volume2, label: "Pronunciation", color: "text-blue-500" },
+                      { icon: Pen, label: "Fill in the Blank", color: "text-green-500" },
+                      { icon: Headphones, label: "Listening", color: "text-orange-500" },
+                      { icon: Type, label: "Writing", color: "text-pink-500" },
+                    ].map((a) => (
+                      <div key={a.label} className="flex items-center gap-2 p-2 rounded-lg bg-white/50 dark:bg-gray-900/50">
+                        <a.icon className={`w-4 h-4 ${a.color}`} />
+                        <span className="text-xs font-medium text-foreground">{a.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
-              <Button onClick={handleStartLesson} size="lg" className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white px-8">
+              <Button onClick={handleStartLesson} size="lg" className={`px-8 text-white ${isGrammar ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700" : "bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"}`}>
                 Mulai Belajar
               </Button>
             </div>
