@@ -113,6 +113,46 @@ function saveAllCards(cards: CardReview[]) {
   }
 }
 
+// ─── Cloud Sync (debounced) ────────────────────────────────────────────
+
+let _syncTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function triggerCloudSync() {
+  if (typeof window === "undefined") return;
+  if (_syncTimeout) clearTimeout(_syncTimeout);
+  _syncTimeout = setTimeout(async () => {
+    try {
+      const { syncSpacedRepetitionToCloud } = await import("@/lib/cloud-sync");
+      const cards = loadAllCards();
+      const merged = await syncSpacedRepetitionToCloud(cards);
+      // Write back merged result (cloud may have newer data)
+      saveAllCards(merged);
+    } catch {
+      // Queue for retry when online — convert to snake_case for DB columns
+      try {
+        const { enqueue } = await import("@/lib/sync-queue");
+        const cards = loadAllCards();
+        const dbRows = cards.map((c) => ({
+          word_id: c.wordId,
+          easiness_factor: c.easinessFactor,
+          interval_days: c.interval,
+          repetitions: c.repetitions,
+          last_review_date: c.lastReviewDate || null,
+          next_review_date: c.nextReviewDate || null,
+        }));
+        enqueue({
+          table: "user_words",
+          operation: "upsert",
+          payload: dbRows,
+          timestamp: Date.now(),
+        });
+      } catch {
+        // Last resort silent fail
+      }
+    }
+  }, 2000); // 2s debounce
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────
 
 /**
@@ -132,7 +172,7 @@ export function getCard(wordId: number): CardReview | null {
 
 /**
  * Record a review for a word and get updated card data.
- * Returns the updated card.
+ * Returns the updated card. Triggers cloud sync.
  */
 export function recordReview(wordId: number, grade: ReviewGrade): CardReview {
   const cards = loadAllCards();
@@ -165,6 +205,10 @@ export function recordReview(wordId: number, grade: ReviewGrade): CardReview {
   }
 
   saveAllCards(newCards);
+
+  // Trigger cloud sync in background
+  triggerCloudSync();
+
   return updatedCard;
 }
 
@@ -213,4 +257,45 @@ export function getDueStats(): DueStats {
  */
 export function getCardsByDueDate(): CardReview[] {
   return loadAllCards().sort((a, b) => a.nextReviewDate.localeCompare(b.nextReviewDate));
+}
+
+/**
+ * Replace all local cards with cloud data (used during cloud pull).
+ */
+export function setCards(cards: CardReview[]): void {
+  saveAllCards(cards);
+}
+
+/**
+ * Merge cloud cards into local: newer lastReviewDate wins per card.
+ * Returns the merged set and also saves to localStorage.
+ */
+export function mergeCloudCards(cloudCards: CardReview[]): CardReview[] {
+  const local = loadAllCards();
+  const localMap = new Map(local.map((c) => [c.wordId, c]));
+  const cloudMap = new Map(cloudCards.map((c) => [c.wordId, c]));
+
+  const allIds = new Set([...localMap.keys(), ...cloudMap.keys()]);
+  const merged: CardReview[] = [];
+
+  for (const id of allIds) {
+    const localCard = localMap.get(id);
+    const cloudCard = cloudMap.get(id);
+
+    if (!localCard) {
+      merged.push(cloudCard!);
+    } else if (!cloudCard) {
+      merged.push(localCard);
+    } else {
+      // Both exist: newer lastReviewDate wins
+      merged.push(
+        localCard.lastReviewDate >= cloudCard.lastReviewDate
+          ? localCard
+          : cloudCard
+      );
+    }
+  }
+
+  saveAllCards(merged);
+  return merged;
 }

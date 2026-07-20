@@ -59,9 +59,15 @@ export interface Database {
           word_id: number;
           status: "new" | "learning" | "mastered";
           mastery: number;
+          easiness_factor: number;
+          interval_days: number;
+          repetitions: number;
+          last_review_date: string | null;
+          next_review_date: string | null;
           last_reviewed: string;
           next_review: string;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -69,9 +75,15 @@ export interface Database {
           word_id: number;
           status?: "new" | "learning" | "mastered";
           mastery?: number;
+          easiness_factor?: number;
+          interval_days?: number;
+          repetitions?: number;
+          last_review_date?: string | null;
+          next_review_date?: string | null;
           last_reviewed?: string;
           next_review?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
@@ -79,9 +91,15 @@ export interface Database {
           word_id?: number;
           status?: "new" | "learning" | "mastered";
           mastery?: number;
+          easiness_factor?: number;
+          interval_days?: number;
+          repetitions?: number;
+          last_review_date?: string | null;
+          next_review_date?: string | null;
           last_reviewed?: string;
           next_review?: string;
           created_at?: string;
+          updated_at?: string;
         };
       };
       user_profiles: {
@@ -101,6 +119,7 @@ export interface Database {
           completed_sessions: number;
           last_session_date: string;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id: string;
@@ -118,6 +137,7 @@ export interface Database {
           completed_sessions?: number;
           last_session_date?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
@@ -135,6 +155,7 @@ export interface Database {
           completed_sessions?: number;
           last_session_date?: string;
           created_at?: string;
+          updated_at?: string;
         };
       };
       user_saved_words: {

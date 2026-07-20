@@ -205,7 +205,7 @@ function triggerCloudSync(state: GamificationState) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
+      const { error } = await supabase
         .from("user_profiles")
         .upsert({
           id: user.id,
@@ -221,8 +221,32 @@ function triggerCloudSync(state: GamificationState) {
           last_session_date: state.lastSessionDate,
           total_words: state.masteredWords,
         }, { onConflict: "id" });
+
+      if (error) throw error;
     } catch {
-      // Silent fail — will retry on next save
+      // Queue for retry when online
+      try {
+        const { enqueue } = await import("@/lib/sync-queue");
+        enqueue({
+          table: "user_profiles",
+          operation: "upsert",
+          payload: {
+            total_xp: state.totalXp,
+            streak: state.streak,
+            last_active_date: state.lastActiveDate,
+            daily_xp: state.dailyXp,
+            daily_xp_date: state.dailyXpDate,
+            mastered_words: state.masteredWords,
+            viewed_words: state.viewedWords,
+            completed_sessions: state.completedSessions,
+            last_session_date: state.lastSessionDate,
+            total_words: state.masteredWords,
+          },
+          timestamp: Date.now(),
+        });
+      } catch {
+        // Last resort silent fail
+      }
     }
   }, 2000); // 2s debounce
 }

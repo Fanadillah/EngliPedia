@@ -6,7 +6,9 @@ import { Volume2, ChevronLeft, ChevronRight, RotateCcw, Sparkles, Check, X, Brai
 import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
 import { awardXp, getXpEventMessage } from "@/lib/gamification";
-import { recordReview, getDueCount, getDueWordIds } from "@/lib/spaced-repetition";
+import { recordReview, getDueCount, getDueWordIds, mergeCloudCards } from "@/lib/spaced-repetition";
+import { loadSpacedRepetitionFromCloud } from "@/lib/cloud-sync";
+import { useAuth } from "@/components/auth/auth-context";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
 
@@ -55,6 +57,7 @@ export function FlashcardDeck() {
   const startTimeRef = useRef<number>(0);
   const masteryAwardedRef = useRef(false);
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [dueCount, setDueCount] = useState(0);
 
   // Fetch words on mount
@@ -64,6 +67,19 @@ export function FlashcardDeck() {
 
   const loadWords = async () => {
     setLoading(true);
+
+    // Pull spaced repetition data from cloud first (if logged in)
+    if (user) {
+      try {
+        const cloudCards = await loadSpacedRepetitionFromCloud();
+        if (cloudCards.length > 0) {
+          mergeCloudCards(cloudCards);
+        }
+      } catch {
+        // Silent fail — use local data
+      }
+    }
+
     const dueIds = getDueWordIds();
     setDueCount(getDueCount());
     const supabase = createClient();

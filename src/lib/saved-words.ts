@@ -45,6 +45,13 @@ export function toggleSaved(wordId: number): boolean {
 }
 
 /**
+ * Overwrite all saved word IDs (used when pulling from cloud).
+ */
+export function setSavedIds(ids: number[]): void {
+  saveIds([...new Set(ids)]);
+}
+
+/**
  * Get all saved word IDs.
  */
 export function getSavedIds(): number[] {

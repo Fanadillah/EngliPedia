@@ -2,7 +2,8 @@
 
 import { createClient } from "@/utils/supabase/client";
 import type { GamificationState } from "@/lib/gamification";
-import { getSavedIds } from "@/lib/saved-words";
+import type { CardReview } from "@/lib/spaced-repetition";
+import { getSavedIds, setSavedIds } from "@/lib/saved-words";
 
 const client = () => createClient() as any;
 
@@ -31,33 +32,6 @@ export async function syncGamificationToCloud(state: GamificationState): Promise
 
   if (error) {
     console.error("Failed to sync gamification:", error);
-  }
-}
-
-// ─── Sync Saved Words to Cloud ──────────────────────────────────────────
-
-export async function syncSavedWordsToCloud(): Promise<void> {
-  const { data: { user } } = await client().auth.getUser();
-  if (!user) return;
-
-  const localIds = getSavedIds();
-  if (localIds.length === 0) return;
-
-  const { data: existing } = await client()
-    .from("user_saved_words")
-    .select("word_id")
-    .eq("user_id", user.id);
-
-  const existingIds = new Set((existing || []).map((s: any) => s.word_id));
-  const newWords = localIds.filter((id) => !existingIds.has(id));
-  if (newWords.length === 0) return;
-
-  const { error } = await client()
-    .from("user_saved_words")
-    .insert(newWords.map((word_id) => ({ user_id: user.id, word_id })));
-
-  if (error) {
-    console.error("Failed to sync saved words:", error);
   }
 }
 
@@ -92,7 +66,50 @@ export async function loadGamificationFromCloud(): Promise<GamificationState | n
   };
 }
 
-// ─── Load Saved Words from Cloud ────────────────────────────────────────
+// ─── Update Single XP Value to Cloud ────────────────────────────────────
+
+export async function updateXpToCloud(field: string, value: number): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  await client()
+    .from("user_profiles")
+    .update({ [field]: value })
+    .eq("id", user.id);
+}
+
+// ─── Sync Saved Words (Bidirectional) ──────────────────────────────────
+
+export async function syncSavedWordsToCloud(): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  const localIds = getSavedIds();
+
+  // Fetch cloud data
+  const { data: cloudRows } = await client()
+    .from("user_saved_words")
+    .select("word_id")
+    .eq("user_id", user.id);
+
+  const cloudIds = ((cloudRows || []) as any[]).map((s) => s.word_id as number);
+  const cloudSet = new Set(cloudIds);
+
+  // Push: local words not in cloud
+  const toInsert = localIds.filter((id) => !cloudSet.has(id));
+  if (toInsert.length > 0) {
+    await client()
+      .from("user_saved_words")
+      .insert(toInsert.map((word_id) => ({ user_id: user.id, word_id })));
+  }
+
+  // Pull: cloud words not in local
+  const localSet = new Set(localIds);
+  const toPull = cloudIds.filter((id) => !localSet.has(id));
+  if (toPull.length > 0) {
+    setSavedIds([...localIds, ...toPull]);
+  }
+}
 
 export async function loadSavedWordsFromCloud(): Promise<number[]> {
   const { data: { user } } = await client().auth.getUser();
@@ -106,20 +123,6 @@ export async function loadSavedWordsFromCloud(): Promise<number[]> {
 
   return ((data || []) as any[]).map((s) => s.word_id);
 }
-
-// ─── Update Single XP Value to Cloud ────────────────────────────────────
-
-export async function updateXpToCloud(field: string, value: number): Promise<void> {
-  const { data: { user } } = await client().auth.getUser();
-  if (!user) return;
-
-  await client()
-    .from("user_profiles")
-    .update({ [field]: value })
-    .eq("id", user.id);
-}
-
-// ─── Toggle Saved Word in Cloud ─────────────────────────────────────────
 
 export async function toggleSavedWordInCloud(wordId: number, save: boolean): Promise<void> {
   const { data: { user } } = await client().auth.getUser();
@@ -136,4 +139,129 @@ export async function toggleSavedWordInCloud(wordId: number, save: boolean): Pro
       .eq("user_id", user.id)
       .eq("word_id", wordId);
   }
+}
+
+// ─── Sync Spaced Repetition (Bidirectional) ────────────────────────────
+
+/**
+ * Determine the status string for user_words based on SM-2 card data.
+ */
+function cardStatus(card: CardReview): "new" | "learning" | "mastered" {
+  if (card.repetitions >= 5 && card.easinessFactor >= 2.0) return "mastered";
+  if (card.repetitions >= 1) return "learning";
+  return "new";
+}
+
+/**
+ * Push local spaced repetition cards to cloud and pull cloud data.
+ * Merges bidirectionally: newer updated_at wins per card.
+ */
+export async function syncSpacedRepetitionToCloud(
+  localCards: CardReview[]
+): Promise<CardReview[]> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return localCards;
+
+  // Fetch all cloud cards for this user
+  const { data: cloudRows } = await client()
+    .from("user_words")
+    .select("word_id, easiness_factor, interval_days, repetitions, last_review_date, next_review_date, updated_at")
+    .eq("user_id", user.id);
+
+  const cloudCards: CardReview[] = ((cloudRows || []) as any[]).map((row) => ({
+    wordId: row.word_id,
+    easinessFactor: row.easiness_factor ?? 2.5,
+    interval: row.interval_days ?? 0,
+    repetitions: row.repetitions ?? 0,
+    lastReviewDate: row.last_review_date || "",
+    nextReviewDate: row.next_review_date || "",
+    createdAt: row.updated_at || "",
+  }));
+
+  // Build maps for merge
+  const localMap = new Map(localCards.map((c) => [c.wordId, c]));
+  const cloudMap = new Map(cloudCards.map((c) => [c.wordId, c]));
+
+  const allWordIds = new Set([...localMap.keys(), ...cloudMap.keys()]);
+
+  const merged: CardReview[] = [];
+  const toUpsert: any[] = [];
+
+  for (const wordId of allWordIds) {
+    const local = localMap.get(wordId);
+    const cloud = cloudMap.get(wordId);
+
+    let winner: CardReview;
+
+    if (!local) {
+      // Cloud only → use cloud
+      winner = cloud!;
+    } else if (!cloud) {
+      // Local only → use local, push to cloud
+      winner = local;
+      toUpsert.push(buildUpsertRow(user.id, local));
+    } else {
+      // Both exist → compare by lastReviewDate (more reliable than updatedAt for SR)
+      // The card with the more recent review wins
+      if (local.lastReviewDate >= cloud.lastReviewDate) {
+        winner = local;
+        toUpsert.push(buildUpsertRow(user.id, local));
+      } else {
+        winner = cloud;
+      }
+    }
+
+    merged.push(winner);
+  }
+
+  // Batch upsert to cloud
+  if (toUpsert.length > 0) {
+    // Supabase handles upsert in batches natively
+    const { error } = await client()
+      .from("user_words")
+      .upsert(toUpsert, { onConflict: "user_id,word_id" });
+
+    if (error) {
+      console.error("Failed to sync spaced repetition:", error);
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Load all spaced repetition cards from cloud for the current user.
+ */
+export async function loadSpacedRepetitionFromCloud(): Promise<CardReview[]> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return [];
+
+  const { data: rows } = await client()
+    .from("user_words")
+    .select("word_id, easiness_factor, interval_days, repetitions, last_review_date, next_review_date, created_at, updated_at")
+    .eq("user_id", user.id);
+
+  return ((rows || []) as any[]).map((row) => ({
+    wordId: row.word_id,
+    easinessFactor: row.easiness_factor ?? 2.5,
+    interval: row.interval_days ?? 0,
+    repetitions: row.repetitions ?? 0,
+    lastReviewDate: row.last_review_date || "",
+    nextReviewDate: row.next_review_date || "",
+    createdAt: row.created_at || "",
+  }));
+}
+
+function buildUpsertRow(userId: string, card: CardReview) {
+  return {
+    user_id: userId,
+    word_id: card.wordId,
+    status: cardStatus(card),
+    mastery: Math.min(100, Math.round((card.repetitions / 8) * 100)),
+    easiness_factor: card.easinessFactor,
+    interval_days: card.interval,
+    repetitions: card.repetitions,
+    last_review_date: card.lastReviewDate || null,
+    next_review_date: card.nextReviewDate || null,
+  };
 }

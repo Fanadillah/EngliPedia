@@ -4,11 +4,14 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, ty
 import type { User, Session } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
 import { loadState } from "@/lib/gamification";
+import { getCards, setCards } from "@/lib/spaced-repetition";
 import {
   syncGamificationToCloud,
   syncSavedWordsToCloud,
+  syncSpacedRepetitionToCloud,
 } from "@/lib/cloud-sync";
 import { getSavedIds } from "@/lib/saved-words";
+import { startDrain } from "@/lib/sync-queue";
 
 interface AuthState {
   user: User | null;
@@ -33,20 +36,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const syncingRef = useRef(false);
 
-  // Sync local data to cloud when user is authenticated
+  // Full sync: gamification + saved words + spaced repetition
   const syncToCloud = useCallback(async () => {
     if (syncingRef.current) return;
     syncingRef.current = true;
     setSyncing(true);
     try {
+      // 1. Gamification
       const gamification = loadState();
       if (gamification.totalXp > 0 || gamification.streak > 0) {
         await syncGamificationToCloud(gamification);
       }
+
+      // 2. Saved words (bidirectional)
       const savedIds = getSavedIds();
       if (savedIds.length > 0) {
         await syncSavedWordsToCloud();
       }
+
+      // 3. Spaced repetition (bidirectional merge)
+      const localCards = getCards();
+      const merged = await syncSpacedRepetitionToCloud(localCards);
+      // syncSpacedRepetitionToCloud already merged — save directly
+      setCards(merged);
     } catch (err) {
       console.error("Sync error:", err);
     } finally {
@@ -56,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // stable reference — never changes
 
   useEffect(() => {
+    // Start offline queue drain
+    startDrain();
+
     const supabase = createClient();
 
     // Get initial session

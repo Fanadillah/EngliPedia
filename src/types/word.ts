@@ -19,9 +19,15 @@ export interface UserWord {
   word_id: number;
   status: "new" | "learning" | "mastered";
   mastery: number;
+  easiness_factor: number;
+  interval_days: number;
+  repetitions: number;
+  last_review_date: string | null;
+  next_review_date: string | null;
   last_reviewed: string;
   next_review: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface UserProfile {

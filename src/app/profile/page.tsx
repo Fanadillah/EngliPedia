@@ -48,18 +48,11 @@ export default function ProfilePage() {
       loadGamificationFromCloud().then((cloudData) => {
         const local = loadState();
         if (cloudData) {
-          setCloudData({
-            ...local,
-            totalXp: Math.max(local.totalXp, cloudData.totalXp),
-            streak: Math.max(local.streak, cloudData.streak),
-            masteredWords: Math.max(local.masteredWords, cloudData.masteredWords),
-            viewedWords: Math.max(local.viewedWords, cloudData.viewedWords),
-            completedSessions: Math.max(local.completedSessions, cloudData.completedSessions),
-            lastActiveDate: cloudData.lastActiveDate || local.lastActiveDate,
-            dailyXp: Math.max(local.dailyXp, cloudData.dailyXp),
-            dailyXpDate: cloudData.dailyXpDate || local.dailyXpDate,
-            lastSessionDate: cloudData.lastSessionDate || local.lastSessionDate,
-          });
+          // Merge: timestamp-based — use updated_at from cloud if available
+          // For now, use a simple heuristic: if cloud total_xp is higher, cloud wins entirely
+          // Otherwise local wins (local is always more up-to-date since we write first)
+          const cloudNewer = cloudData.totalXp > local.totalXp;
+          setCloudData(cloudNewer ? { ...local, ...cloudData } : local);
         } else {
           setCloudData(local);
         }

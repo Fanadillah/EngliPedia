@@ -154,19 +154,10 @@ export default function StatisticsPage() {
       loadGamificationFromCloud().then((cloudData) => {
         const local = loadState();
         if (cloudData) {
-          // Merge: take max of local and cloud for each field
-          setStats({
-            ...local,
-            totalXp: Math.max(local.totalXp, cloudData.totalXp),
-            streak: Math.max(local.streak, cloudData.streak),
-            masteredWords: Math.max(local.masteredWords, cloudData.masteredWords),
-            viewedWords: Math.max(local.viewedWords, cloudData.viewedWords),
-            completedSessions: Math.max(local.completedSessions, cloudData.completedSessions),
-            lastActiveDate: cloudData.lastActiveDate || local.lastActiveDate,
-            dailyXp: Math.max(local.dailyXp, cloudData.dailyXp),
-            dailyXpDate: cloudData.dailyXpDate || local.dailyXpDate,
-            lastSessionDate: cloudData.lastSessionDate || local.lastSessionDate,
-          });
+          // Merge: timestamp-based — cloud wins if its total_xp is higher
+          // (cloud data comes from server which is source of truth after sync)
+          const cloudNewer = cloudData.totalXp > local.totalXp;
+          setStats(cloudNewer ? { ...local, ...cloudData } : local);
         } else {
           setStats(local);
         }
