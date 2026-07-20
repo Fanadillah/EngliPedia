@@ -407,17 +407,17 @@ export default function SavedWordsPage() {
                             <motion.div
                               className="h-full rounded-full"
                               style={{
-                                width: `${Math.min(100, (word.frequency / 20) * 100)}%`,
+                                width: `${Math.min(100, (word.frequency / 8) * 100)}%`,
                                 backgroundColor:
-                                  word.frequency > 100
+                                  word.frequency >= 6
                                     ? "#10B981"
-                                    : word.frequency > 30
+                                    : word.frequency >= 4
                                     ? "#F59E0B"
                                     : "#9CA3AF",
                               }}
                               initial={{ width: 0 }}
                               animate={{
-                                width: `${Math.min(100, (word.frequency / 20) * 100)}%`,
+                                width: `${Math.min(100, (word.frequency / 8) * 100)}%`,
                               }}
                               transition={{ duration: 0.8, delay: idx * 0.05 }}
                             />

@@ -36,9 +36,9 @@ const POS_OPTIONS = ["", "noun", "verb", "adjective", "adverb", "pronoun", "prep
 
 const FREQ_OPTIONS = [
   { value: "", label: "Semua", min: 0, max: Infinity },
-  { value: "rare", label: "Jarang", min: 0, max: 10 },
-  { value: "common", label: "Umum", min: 10, max: 100 },
-  { value: "popular", label: "Populer", min: 100, max: Infinity },
+  { value: "rare", label: "Jarang", min: 0, max: 4 },
+  { value: "common", label: "Umum", min: 4, max: 6 },
+  { value: "popular", label: "Populer", min: 6, max: Infinity },
 ] as const;
 
 const LEVEL_STYLE: Record<string, { gradient: string; dot: string; label: string }> = {
@@ -402,11 +402,11 @@ export default function SearchPage() {
             <div ref={listRef} className="space-y-2.5">
               {words.map((w, idx) => {
                 const levelStyle = LEVEL_STYLE[w.level] || LEVEL_STYLE.basic;
-                const freqPercent = Math.min((w.frequency / 500) * 100, 100);
+                const freqPercent = Math.min((w.frequency / 8) * 100, 100);
                 const freqColor =
-                  w.frequency > 100
+                  w.frequency >= 6
                     ? "bg-emerald-400"
-                    : w.frequency > 30
+                    : w.frequency >= 4
                     ? "bg-amber-400"
                     : "bg-muted-foreground/40";
 
