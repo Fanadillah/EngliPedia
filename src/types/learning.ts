@@ -132,3 +132,35 @@ export interface UserDailyTask {
   lesson_id: string | null;
   created_at: string;
 }
+
+// ─── Grammar Lesson Content ────────────────────────────────────────────
+
+export interface LessonContent {
+  id: string;
+  lesson_id: string;
+  content_type: "explanation" | "example" | "exercise";
+  sort_order: number;
+  title: string;
+  content: ExplanationContent | ExampleContent | ExerciseContent;
+  created_at: string;
+}
+
+export interface ExplanationContent {
+  text: string;
+  pattern: string;
+  notes: string[];
+}
+
+export interface ExampleContent {
+  sentence: string;
+  translation: string;
+  highlight: string[];
+}
+
+export interface ExerciseContent {
+  type: "fill_blank" | "mcq" | "reorder";
+  question: string;
+  answer: string;
+  options?: string[];
+  hint?: string;
+}

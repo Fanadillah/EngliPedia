@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import type { Course, Unit, Lesson, CourseWithProgress, UnitWithProgress, LessonWithProgress } from "@/types/learning";
+import type { Course, Unit, Lesson, CourseWithProgress, UnitWithProgress, LessonWithProgress, LessonContent } from "@/types/learning";
 import type { Word } from "@/types/word";
 
 const client = () => createClient() as any;
@@ -497,4 +497,16 @@ export async function getTodayProgress(): Promise<{
     xpEarned,
     reviewCompleted: reviewCompleted || 0,
   };
+}
+
+// ─── Lesson Content (Grammar) ─────────────────────────────────────────
+
+export async function getLessonContent(lessonId: string): Promise<LessonContent[]> {
+  const { data } = await client()
+    .from("lesson_content")
+    .select("*")
+    .eq("lesson_id", lessonId)
+    .order("sort_order");
+
+  return (data || []) as LessonContent[];
 }

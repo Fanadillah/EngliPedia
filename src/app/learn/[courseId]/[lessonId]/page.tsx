@@ -18,10 +18,14 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { FadeIn } from "@/components/ui/motion-components";
 import { motion, AnimatePresence } from "motion/react";
-import { getLessonWords, updateLessonProgress, addMistake } from "@/lib/learning";
+import { getLessonWords, getLessonContent, updateLessonProgress, addMistake } from "@/lib/learning";
 import { awardXp } from "@/lib/gamification";
 import type { Word } from "@/types/word";
+import type { LessonContent } from "@/types/learning";
 import { createClient } from "@/utils/supabase/client";
+import { GrammarExplanation } from "@/components/grammar/grammar-explanation";
+import { GrammarExample } from "@/components/grammar/grammar-example";
+import { GrammarExercise } from "@/components/grammar/grammar-exercise";
 
 type Step =
   | "intro"
@@ -30,6 +34,9 @@ type Step =
   | "fill_blank"
   | "listening"
   | "writing"
+  | "grammar_explanation"
+  | "grammar_examples"
+  | "grammar_practice"
   | "complete";
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -86,6 +93,15 @@ export default function LessonPage() {
   const [writingAccepted, setWritingAccepted] = useState<boolean | null>(null);
   const [writingScore, setWritingScore] = useState(0);
 
+  // Grammar state
+  const [lessonContent, setLessonContent] = useState<LessonContent[]>([]);
+  const [grammarStep, setGrammarStep] = useState<"explanation" | "examples" | "practice">("explanation");
+  const [grammarExplanationIndex, setGrammarExplanationIndex] = useState(0);
+  const [grammarExampleIndex, setGrammarExampleIndex] = useState(0);
+  const [grammarExerciseIndex, setGrammarExerciseIndex] = useState(0);
+  const [grammarScore, setGrammarScore] = useState(0);
+  const [grammarExerciseAnswered, setGrammarExerciseAnswered] = useState(false);
+
   // Overall score
   const [totalActivities, setTotalActivities] = useState(0);
   const [completedActivities, setCompletedActivities] = useState(0);
@@ -111,6 +127,12 @@ export default function LessonPage() {
 
       const lessonWords = await getLessonWords(lessonId);
       setWords(lessonWords);
+
+      // Load grammar content if grammar lesson
+      if ((lesson?.lesson_type || "vocabulary") === "grammar") {
+        const content = await getLessonContent(lessonId);
+        setLessonContent(content);
+      }
 
       await updateLessonProgress(lessonId, "in_progress", 0, 0);
     } catch (error) {
@@ -205,11 +227,20 @@ export default function LessonPage() {
     return shuffleArray(questions);
   };
 
-  // ─── Intro → Vocabulary ───────────────────────────────────────────
+  // ─── Intro → Start ──────────────────────────────────────────────
   const handleStartLesson = () => {
-    setStep("vocabulary");
-    setCurrentWordIndex(0);
-    setShowMeaning(false);
+    if (lessonType === "grammar") {
+      setStep("grammar_explanation");
+      setGrammarStep("explanation");
+      setGrammarExplanationIndex(0);
+      setGrammarExampleIndex(0);
+      setGrammarExerciseIndex(0);
+      setGrammarScore(0);
+    } else {
+      setStep("vocabulary");
+      setCurrentWordIndex(0);
+      setShowMeaning(false);
+    }
   };
 
   // ─── Vocabulary Navigation ─────────────────────────────────────────
@@ -366,6 +397,52 @@ export default function LessonPage() {
         finishLesson();
       }
     }, 1500);
+  };
+
+  // ─── Grammar Flow ──────────────────────────────────────────────────
+  const explanations = lessonContent.filter((c) => c.content_type === "explanation");
+  const examples = lessonContent.filter((c) => c.content_type === "example");
+  const exercises = lessonContent.filter((c) => c.content_type === "exercise");
+
+  const handleGrammarNextExplanation = (currentIdx: number) => {
+    if (currentIdx < explanations.length - 1) {
+      setGrammarExplanationIndex(currentIdx + 1);
+    } else {
+      setGrammarStep("examples");
+      setGrammarExampleIndex(0);
+    }
+  };
+
+  const handleGrammarNextExample = (currentIdx: number) => {
+    if (currentIdx < examples.length - 1) {
+      setGrammarExampleIndex(currentIdx + 1);
+    } else {
+      setGrammarStep("practice");
+      setGrammarExerciseIndex(0);
+      setGrammarScore(0);
+      setGrammarExerciseAnswered(false);
+      setTotalActivities((prev) => prev + exercises.length);
+    }
+  };
+
+  const handleGrammarExerciseAnswer = (correct: boolean) => {
+    setGrammarExerciseAnswered(true);
+    if (correct) {
+      setGrammarScore((s) => s + 1);
+      setCompletedActivities((prev) => prev + 1);
+    } else {
+      const ex = exercises[grammarExerciseIndex];
+      if (ex) addMistake(0, lessonTitle); // 0 for grammar exercises (no word ID)
+    }
+  };
+
+  const handleGrammarNextExercise = () => {
+    if (grammarExerciseIndex < exercises.length - 1) {
+      setGrammarExerciseIndex(grammarExerciseIndex + 1);
+      setGrammarExerciseAnswered(false);
+    } else {
+      finishLesson();
+    }
   };
 
   // ─── Finish ────────────────────────────────────────────────────────
@@ -881,6 +958,95 @@ export default function LessonPage() {
               )}
             </div>
           </FadeIn>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── GRAMMAR: EXPLANATION ────────────────────────────────────────
+  if (step === "grammar_explanation" && explanations.length > 0) {
+    const current = explanations[grammarExplanationIndex];
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-violet-50/50 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-violet-950/20">
+        <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
+          <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
+            <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">Grammar</Badge>
+            <span>{grammarExplanationIndex + 1}/{explanations.length}</span>
+          </div>
+          <div className="h-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full overflow-hidden mb-6">
+            <motion.div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${((grammarExplanationIndex + 1) / explanations.length) * 100}%` }} transition={{ duration: 0.3 }} />
+          </div>
+
+          <GrammarExplanation content={current.content as any} title={current.title} />
+
+          <div className="mt-6">
+            <Button onClick={() => handleGrammarNextExplanation(grammarExplanationIndex)} className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
+              {grammarExplanationIndex < explanations.length - 1 ? "Selanjutnya" : "Lihat Contoh"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── GRAMMAR: EXAMPLES ───────────────────────────────────────────
+  if (step === "grammar_examples" && examples.length > 0) {
+    const current = examples[grammarExampleIndex];
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-violet-50/50 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-violet-950/20">
+        <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
+          <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
+            <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">Contoh</Badge>
+            <span>{grammarExampleIndex + 1}/{examples.length}</span>
+          </div>
+          <div className="h-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full overflow-hidden mb-6">
+            <motion.div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${((grammarExampleIndex + 1) / examples.length) * 100}%` }} transition={{ duration: 0.3 }} />
+          </div>
+
+          <GrammarExample content={current.content as any} title={current.title} playAudio={playPronunciation} />
+
+          <div className="mt-6">
+            <Button onClick={() => handleGrammarNextExample(grammarExampleIndex)} className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
+              {grammarExampleIndex < examples.length - 1 ? "Selanjutnya" : "Mulai Latihan"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── GRAMMAR: PRACTICE ───────────────────────────────────────────
+  if (step === "grammar_practice" && exercises.length > 0) {
+    const current = exercises[grammarExerciseIndex];
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-violet-50/50 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-violet-950/20">
+        <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
+          <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
+            <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">Latihan</Badge>
+            <span>{grammarExerciseIndex + 1}/{exercises.length}</span>
+            <span className="ml-auto text-indigo-600 dark:text-indigo-400 font-medium">{grammarScore}/{grammarExerciseIndex + (grammarExerciseAnswered ? 1 : 0)}</span>
+          </div>
+          <div className="h-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full overflow-hidden mb-6">
+            <motion.div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${((grammarExerciseIndex + 1) / exercises.length) * 100}%` }} transition={{ duration: 0.3 }} />
+          </div>
+
+          <GrammarExercise
+            content={current.content as any}
+            title={current.title}
+            onAnswer={handleGrammarExerciseAnswer}
+            answered={grammarExerciseAnswered}
+          />
+
+          {grammarExerciseAnswered && (
+            <div className="mt-6">
+              <Button onClick={handleGrammarNextExercise} className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
+                {grammarExerciseIndex < exercises.length - 1 ? "Selanjutnya" : "Selesai"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
