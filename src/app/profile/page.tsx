@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LogIn, Bell, Volume2, LogOut, User, Sparkles, Mail, Calendar, Download, RefreshCw, Smartphone } from "lucide-react";
+import { LogIn, Bell, Volume2, LogOut, User, Sparkles, Mail, Calendar, Download, RefreshCw, Smartphone, Target, BookOpen, Trophy, Zap } from "lucide-react";
 import { ProfileEmptyIllustration } from "@/components/illustrations";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 import { useAuth } from "@/components/auth/auth-context";
@@ -12,6 +12,7 @@ import { loadGamificationFromCloud } from "@/lib/cloud-sync";
 import { loadState, xpProgress, LEVEL_TITLES } from "@/lib/gamification";
 import type { GamificationState } from "@/lib/gamification";
 import { motion } from "motion/react";
+import { getDailyGoal, updateDailyGoal } from "@/lib/learning";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function ProfilePage() {
   const [canInstall, setCanInstall] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [dailyGoal, setDailyGoal] = useState({ xp_goal: 20, words_goal: 5, lessons_goal: 1 });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -48,15 +51,13 @@ export default function ProfilePage() {
       loadGamificationFromCloud().then((cloudData) => {
         const local = loadState();
         if (cloudData) {
-          // Merge: timestamp-based — use updated_at from cloud if available
-          // For now, use a simple heuristic: if cloud total_xp is higher, cloud wins entirely
-          // Otherwise local wins (local is always more up-to-date since we write first)
           const cloudNewer = cloudData.totalXp > local.totalXp;
           setCloudData(cloudNewer ? { ...local, ...cloudData } : local);
         } else {
           setCloudData(local);
         }
       });
+      getDailyGoal().then(setDailyGoal);
     } else {
       setCloudData(null);
     }
@@ -261,6 +262,98 @@ export default function ProfilePage() {
             <p className="text-xs text-muted-foreground mt-4">
               Progress sementara disimpan secara lokal
             </p>
+          </div>
+        )}
+
+        {/* Daily Goal Settings */}
+        {user && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-muted-foreground px-1">Target Harian</h2>
+            <div className="bg-card rounded-2xl border border-border p-4 space-y-4">
+              {/* XP Goal */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm font-medium">XP Harian</span>
+                  </div>
+                  <span className="text-sm font-bold text-amber-600">{dailyGoal.xp_goal} XP</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  step={5}
+                  value={dailyGoal.xp_goal}
+                  onChange={(e) => setDailyGoal({ ...dailyGoal, xp_goal: Number(e.target.value) })}
+                  className="w-full h-2 bg-amber-100 dark:bg-amber-900/30 rounded-full appearance-none cursor-pointer accent-amber-500"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <span>10 XP</span>
+                  <span>100 XP</span>
+                </div>
+              </div>
+
+              {/* Words Goal */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-violet-500" />
+                    <span className="text-sm font-medium">Kata Baru</span>
+                  </div>
+                  <span className="text-sm font-bold text-violet-600">{dailyGoal.words_goal} kata</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={dailyGoal.words_goal}
+                  onChange={(e) => setDailyGoal({ ...dailyGoal, words_goal: Number(e.target.value) })}
+                  className="w-full h-2 bg-violet-100 dark:bg-violet-900/30 rounded-full appearance-none cursor-pointer accent-violet-500"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <span>1</span>
+                  <span>30</span>
+                </div>
+              </div>
+
+              {/* Lessons Goal */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-medium">Lesson</span>
+                  </div>
+                  <span className="text-sm font-bold text-blue-600">{dailyGoal.lessons_goal} lesson</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={5}
+                  step={1}
+                  value={dailyGoal.lessons_goal}
+                  onChange={(e) => setDailyGoal({ ...dailyGoal, lessons_goal: Number(e.target.value) })}
+                  className="w-full h-2 bg-blue-100 dark:bg-blue-900/30 rounded-full appearance-none cursor-pointer accent-blue-500"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <span>1</span>
+                  <span>5</span>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  setSaving(true);
+                  await updateDailyGoal(dailyGoal);
+                  setSaving(false);
+                }}
+                disabled={saving}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-sm font-medium transition-all disabled:opacity-50"
+              >
+                {saving ? "Menyimpan..." : "Simpan Target"}
+              </button>
+            </div>
           </div>
         )}
 
