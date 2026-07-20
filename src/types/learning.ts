@@ -88,6 +88,7 @@ export interface UnitWithProgress extends Unit {
 
 export interface LessonWithProgress extends Lesson {
   word_count: number;
+  exercise_count: number;
   status: "not_started" | "in_progress" | "completed";
 }
 

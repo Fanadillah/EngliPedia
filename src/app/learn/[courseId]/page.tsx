@@ -189,9 +189,14 @@ export default function CourseDetailPage() {
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-foreground truncate">
                           {lesson.title}
+                          {lesson.lesson_type === "grammar" && (
+                            <span className="ml-2 inline-block px-1.5 py-0.5 text-[10px] font-semibold rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">Grammar</span>
+                          )}
                         </h4>
                         <p className="text-xs text-muted-foreground">
-                          {lesson.word_count} kata
+                          {lesson.lesson_type === "grammar"
+                            ? `${lesson.exercise_count} latihan`
+                            : `${lesson.word_count} kata`}
                         </p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground" />

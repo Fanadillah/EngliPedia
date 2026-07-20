@@ -112,6 +112,7 @@ export async function getCourseContent(courseId: string): Promise<UnitWithProgre
   // Get word counts for all lessons
   const lessonIds = (lessons || []).map((l: any) => l.id);
   const wordCounts = new Map<string, number>();
+  const exerciseCounts = new Map<string, number>();
 
   if (lessonIds.length > 0) {
     // Get word counts per lesson using a simpler approach
@@ -122,6 +123,23 @@ export async function getCourseContent(courseId: string): Promise<UnitWithProgre
 
     for (const lw of (lessonWords || []) as any[]) {
       wordCounts.set(lw.lesson_id, (wordCounts.get(lw.lesson_id) || 0) + 1);
+    }
+
+    // Get exercise counts for grammar lessons
+    const grammarLessonIds = (lessons || [])
+      .filter((l: any) => l.lesson_type === "grammar")
+      .map((l: any) => l.id);
+
+    if (grammarLessonIds.length > 0) {
+      const { data: contentRows } = await client()
+        .from("lesson_content")
+        .select("lesson_id, id")
+        .in("lesson_id", grammarLessonIds)
+        .eq("content_type", "exercise");
+
+      for (const row of (contentRows || []) as any[]) {
+        exerciseCounts.set(row.lesson_id, (exerciseCounts.get(row.lesson_id) || 0) + 1);
+      }
     }
   }
 
@@ -148,6 +166,7 @@ export async function getCourseContent(courseId: string): Promise<UnitWithProgre
       lessons: unitLessons.map((lesson) => ({
         ...lesson,
         word_count: wordCounts.get(lesson.id) || 0,
+        exercise_count: exerciseCounts.get(lesson.id) || 0,
         status: (progressMap.get(lesson.id) || "not_started") as "not_started" | "in_progress" | "completed",
       })),
       completed_lessons: completedCount,
