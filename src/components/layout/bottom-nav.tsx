@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Home, Search, BookOpen, Heart, User, Trophy, BarChart3, Brain, X } from "lucide-react";
+import { Home, Search, BookOpen, Heart, User, Trophy, BarChart3, Brain, X, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 
 const leftItems = [
   { href: "/", icon: Home, label: "Beranda" },
-  { href: "/search", icon: Search, label: "Cari" },
+  { href: "/learn", icon: GraduationCap, label: "Belajar" },
 ];
 
 const rightItems = [

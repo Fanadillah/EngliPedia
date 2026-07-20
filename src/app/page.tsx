@@ -12,6 +12,8 @@ import {
   Zap,
   Trophy,
   Headphones,
+  ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -22,6 +24,7 @@ import { AnimatedWord, FadeIn, SlideUp, StaggerContainer, StaggerItem } from "@/
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { motion } from "motion/react";
 import { loadState, checkStreak } from "@/lib/gamification";
+import { getDailyLearningTasks } from "@/lib/learning";
 import { useToast } from "@/components/ui/toast-provider";
 
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
@@ -39,6 +42,10 @@ export default function Home() {
   const [wordOfDay, setWordOfDay] = useState<Word | null>(null);
   const [randomWords, setRandomWords] = useState<Word[]>([]);
   const [gamification, setGamification] = useState(loadState());
+  const [dailyTask, setDailyTask] = useState<{
+    nextLesson: { lesson: any; unit: any; course: any } | null;
+    dueWordsCount: number;
+  } | null>(null);
   const [quote] = useState(
     () => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
   );
@@ -47,6 +54,7 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     loadWords();
+    loadDailyLearning();
     
     // Check streak on visit
     const prevState = loadState(); // Baca state SEBELUM update
@@ -101,6 +109,18 @@ export default function Home() {
     }
   };
 
+  const loadDailyLearning = async () => {
+    try {
+      const tasks = await getDailyLearningTasks();
+      setDailyTask({
+        nextLesson: tasks.nextLesson,
+        dueWordsCount: tasks.dueWordsCount,
+      });
+    } catch (error) {
+      console.error("Failed to load daily tasks:", error);
+    }
+  };
+
   const speak = (text: string) => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -146,6 +166,62 @@ export default function Home() {
               <span className="text-muted-foreground text-sm">Cari kata Inggris atau Indonesia...</span>
             </div>
           </Link>
+
+          {/* Daily Learning */}
+          {dailyTask && (dailyTask.nextLesson || dailyTask.dueWordsCount > 0) && (
+            <FadeIn>
+              <div className="rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 p-[1px]">
+                <div className="bg-card rounded-[15px] p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                      <Sparkles className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <h3 className="font-semibold text-sm text-foreground">Hari Ini</h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    {dailyTask.nextLesson && (
+                      <Link href={`/learn/${dailyTask.nextLesson.course.id}/${dailyTask.nextLesson.lesson.id}`}>
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                            <BookOpen className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {dailyTask.nextLesson.lesson.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {dailyTask.nextLesson.unit.title} • {dailyTask.nextLesson.course.title}
+                            </p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-violet-500" />
+                        </div>
+                      </Link>
+                    )}
+
+                    {dailyTask.dueWordsCount > 0 && (
+                      <Link href="/flashcard">
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+                            <RotateCcw className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              Review {dailyTask.dueWordsCount} kata
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Kata yang perlu diulang
+                            </p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-orange-500" />
+                        </div>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+          )}
 
           {/* Word of the Day */}
           {wordOfDay && (

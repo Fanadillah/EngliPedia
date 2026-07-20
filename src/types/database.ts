@@ -172,6 +172,212 @@ export interface Database {
           created_at?: string;
         };
       };
+      courses: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          difficulty: string;
+          theme: string;
+          icon: string;
+          color: string;
+          sort_order: number;
+          is_published: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string;
+          difficulty?: string;
+          theme?: string;
+          icon?: string;
+          color?: string;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          difficulty?: string;
+          theme?: string;
+          icon?: string;
+          color?: string;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+        };
+      };
+      units: {
+        Row: {
+          id: string;
+          course_id: string;
+          title: string;
+          description: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          course_id: string;
+          title: string;
+          description?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          course_id?: string;
+          title?: string;
+          description?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+      };
+      lessons: {
+        Row: {
+          id: string;
+          unit_id: string;
+          title: string;
+          description: string;
+          lesson_type: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          unit_id: string;
+          title: string;
+          description?: string;
+          lesson_type?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          unit_id?: string;
+          title?: string;
+          description?: string;
+          lesson_type?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+      };
+      lesson_words: {
+        Row: {
+          id: string;
+          lesson_id: string;
+          word_id: number;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lesson_id: string;
+          word_id: number;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          lesson_id?: string;
+          word_id?: number;
+          sort_order?: number;
+          created_at?: string;
+        };
+      };
+      user_lesson_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          lesson_id: string;
+          status: string;
+          words_learned: number;
+          quiz_score: number;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          lesson_id: string;
+          status?: string;
+          words_learned?: number;
+          quiz_score?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          lesson_id?: string;
+          status?: string;
+          words_learned?: number;
+          quiz_score?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_unit_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          unit_id: string;
+          is_completed: boolean;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          unit_id: string;
+          is_completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          unit_id?: string;
+          is_completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_course_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          course_id: string;
+          is_active: boolean;
+          enrolled_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          course_id: string;
+          is_active?: boolean;
+          enrolled_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          course_id?: string;
+          is_active?: boolean;
+          enrolled_at?: string;
+          created_at?: string;
+        };
+      };
     };
   };
 }
