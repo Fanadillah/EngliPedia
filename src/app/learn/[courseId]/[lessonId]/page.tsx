@@ -13,6 +13,9 @@ import {
   Headphones,
   Type,
   Lightbulb,
+  Trophy,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
@@ -105,6 +108,7 @@ export default function LessonPage() {
   // Overall score
   const [totalActivities, setTotalActivities] = useState(0);
   const [completedActivities, setCompletedActivities] = useState(0);
+  const [nextLessonInfo, setNextLessonInfo] = useState<{ lessonId: string; title: string } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -144,6 +148,67 @@ export default function LessonPage() {
 
   useEffect(() => {
     loadLesson();
+  }, [lessonId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Find next lesson in course
+  useEffect(() => {
+    const findNextLesson = async () => {
+      const supabase = createClient();
+      const { data: currentLesson } = await supabase
+        .from("lessons")
+        .select("unit_id, sort_order")
+        .eq("id", lessonId)
+        .single<{ unit_id: string; sort_order: number }>();
+
+      if (!currentLesson) return;
+
+      const { data: nextInUnit } = await supabase
+        .from("lessons")
+        .select("id, title")
+        .eq("unit_id", currentLesson.unit_id)
+        .gt("sort_order", currentLesson.sort_order)
+        .order("sort_order")
+        .limit(1)
+        .single<{ id: string; title: string }>();
+
+      if (nextInUnit) {
+        setNextLessonInfo({ lessonId: nextInUnit.id, title: nextInUnit.title });
+        return;
+      }
+
+      const { data: currentUnit } = await supabase
+        .from("units")
+        .select("course_id, sort_order")
+        .eq("id", currentLesson.unit_id)
+        .single<{ course_id: string; sort_order: number }>();
+
+      if (!currentUnit) return;
+
+      const { data: nextUnit } = await supabase
+        .from("units")
+        .select("id")
+        .eq("course_id", currentUnit.course_id)
+        .gt("sort_order", currentUnit.sort_order)
+        .order("sort_order")
+        .limit(1)
+        .single<{ id: string }>();
+
+      if (!nextUnit) return;
+
+      const { data: firstLesson } = await supabase
+        .from("lessons")
+        .select("id, title")
+        .eq("unit_id", nextUnit.id)
+        .order("sort_order")
+        .limit(1)
+        .single<{ id: string; title: string }>();
+
+      if (firstLesson) {
+        setNextLessonInfo({ lessonId: firstLesson.id, title: firstLesson.title });
+      }
+    };
+
+    findNextLesson();
   }, [lessonId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Helpers ───────────────────────────────────────────────────────
@@ -1079,63 +1144,147 @@ export default function LessonPage() {
 
   // ─── COMPLETE ──────────────────────────────────────────────────────
   if (step === "complete") {
-    const score = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
+    const score = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 100;
+    const isGrammar = lessonType === "grammar";
+    const xpEarned = 30;
+    const grade = score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : score >= 60 ? "D" : "F";
+    const gradeColor = score >= 80 ? "text-green-500" : score >= 60 ? "text-yellow-500" : "text-red-500";
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50/50 via-purple-50/30 to-pink-50/50 dark:from-violet-950/20 dark:via-purple-950/10 dark:to-pink-950/20">
+      <div className="min-h-screen bg-gradient-to-br from-green-50/50 via-emerald-50/30 to-teal-50/50 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/20">
+        {/* Confetti */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+          {[...Array(30)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                background: ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444"][i % 6],
+              }}
+              initial={{ top: -10, opacity: 1, rotate: 0 }}
+              animate={{
+                top: "110%",
+                opacity: [1, 1, 0],
+                rotate: Math.random() * 720 - 360,
+                x: Math.random() * 200 - 100,
+              }}
+              transition={{
+                duration: 2 + Math.random() * 2,
+                delay: Math.random() * 0.5,
+                ease: "easeOut",
+              }}
+            />
+          ))}
+        </div>
+
         <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
           <FadeIn>
-            <div className="text-center py-16">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }}>
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <CheckCircle2 className="w-12 h-12 text-white" />
+            <div className="text-center py-8">
+              {/* Trophy animation */}
+              <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 15 }}>
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-200 dark:shadow-amber-900/30">
+                  <Trophy className="w-14 h-14 text-white" />
                 </div>
               </motion.div>
 
-              <h1 className="text-3xl font-bold text-foreground mb-2">Selesai!</h1>
-              <p className="text-muted-foreground mb-8">Kamu sudah menyelesaikan semua aktivitas</p>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <h1 className="text-3xl font-bold text-foreground mb-1">Selesai!</h1>
+                <p className="text-muted-foreground mb-6">{lessonTitle}</p>
+              </motion.div>
 
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                <div className="rounded-xl bg-white dark:bg-gray-900 border border-violet-100 dark:border-violet-900/30 p-4">
-                  <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">{words.length}</p>
-                  <p className="text-xs text-muted-foreground">Kata Dipelajari</p>
+              {/* XP + Score + Grade */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                <div className="grid grid-cols-3 gap-3 mb-8">
+                  <div className="rounded-2xl bg-white dark:bg-gray-900 border border-amber-100 dark:border-amber-900/30 p-4 shadow-sm">
+                    <Zap className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">+{xpEarned}</p>
+                    <p className="text-[10px] text-muted-foreground">XP Earned</p>
+                  </div>
+                  <div className="rounded-2xl bg-white dark:bg-gray-900 border border-green-100 dark:border-green-900/30 p-4 shadow-sm">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{score}%</p>
+                    <p className="text-[10px] text-muted-foreground">Skor</p>
+                  </div>
+                  <div className="rounded-2xl bg-white dark:bg-gray-900 border border-violet-100 dark:border-violet-900/30 p-4 shadow-sm">
+                    <Sparkles className="w-5 h-5 text-violet-500 mx-auto mb-1" />
+                    <p className={`text-2xl font-bold ${gradeColor}`}>{grade}</p>
+                    <p className="text-[10px] text-muted-foreground">Grade</p>
+                  </div>
                 </div>
-                <div className="rounded-xl bg-white dark:bg-gray-900 border border-violet-100 dark:border-violet-900/30 p-4">
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{score}%</p>
-                  <p className="text-xs text-muted-foreground">Skor Total</p>
-                </div>
-              </div>
+              </motion.div>
 
               {/* Activity breakdown */}
-              <div className="rounded-xl bg-white dark:bg-gray-900 border border-violet-100 dark:border-violet-900/30 p-4 mb-8 text-left max-w-sm mx-auto space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Aktivitas selesai:</p>
-                {[
-                  { label: "Vocabulary", icon: BookOpen, color: "text-violet-500", count: words.length },
-                  { label: "Pronunciation", icon: Volume2, color: "text-blue-500", count: words.length },
-                  { label: "Fill in the Blank", icon: Pen, color: "text-green-500", count: fbWords.length, score: fbScore },
-                  { label: "Listening", icon: Headphones, color: "text-orange-500", count: listenQuestions.length, score: listenScore },
-                  { label: "Writing", icon: Type, color: "text-pink-500", count: writingWords.length, score: writingScore },
-                ].map((a) => (
-                  <div key={a.label} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <a.icon className={`w-4 h-4 ${a.color}`} />
-                      <span className="text-foreground">{a.label}</span>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+                <div className="rounded-2xl bg-white dark:bg-gray-900 border border-green-100 dark:border-green-900/30 p-5 mb-8 text-left shadow-sm">
+                  <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Rincian Aktivitas</p>
+                  {isGrammar ? (
+                    <div className="space-y-3">
+                      {[
+                        { icon: BookMarked, label: "Penjelasan", count: explanations.length, color: "text-indigo-500" },
+                        { icon: BookOpen, label: "Contoh Kalimat", count: examples.length, color: "text-blue-500" },
+                        { icon: Pen, label: "Latihan Benar", count: grammarScore, total: exercises.length, color: "text-green-500" },
+                      ].map((a) => (
+                        <div key={a.label} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center`}>
+                              <a.icon className={`w-4 h-4 ${a.color}`} />
+                            </div>
+                            <span className="text-sm text-foreground">{a.label}</span>
+                          </div>
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {a.total !== undefined ? `${a.count}/${a.total}` : a.count}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-muted-foreground">
-                      {a.score !== undefined ? `${a.score}/${a.count}` : `${a.count}`}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {[
+                        { icon: BookOpen, label: "Vocabulary", count: words.length, color: "text-violet-500" },
+                        { icon: Volume2, label: "Pronunciation", count: words.length, color: "text-blue-500" },
+                        { icon: Pen, label: "Fill in the Blank", count: fbScore, total: fbWords.length, color: "text-green-500" },
+                        { icon: Headphones, label: "Listening", count: listenScore, total: listenQuestions.length, color: "text-orange-500" },
+                        { icon: Type, label: "Writing", count: writingScore, total: writingWords.length, color: "text-pink-500" },
+                      ].map((a) => (
+                        <div key={a.label} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center`}>
+                              <a.icon className={`w-4 h-4 ${a.color}`} />
+                            </div>
+                            <span className="text-sm text-foreground">{a.label}</span>
+                          </div>
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {a.total !== undefined ? `${a.count}/${a.total}` : a.count}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
 
-              <div className="flex gap-3">
-                <Link href={`/learn/${courseId}`} className="flex-1">
-                  <Button variant="outline" className="w-full border-violet-200 dark:border-violet-800">Kembali ke Course</Button>
-                </Link>
-                <Link href="/" className="flex-1">
-                  <Button className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white">Beranda</Button>
-                </Link>
-              </div>
+              {/* Buttons */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+                <div className="flex flex-col gap-3">
+                  {nextLessonInfo && (
+                    <Link href={`/learn/${courseId}/${nextLessonInfo.lessonId}`} className="w-full">
+                      <Button className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white h-12 text-base">
+                        <ArrowRight className="w-5 h-5 mr-2" />
+                        Selanjutnya: {nextLessonInfo.title}
+                      </Button>
+                    </Link>
+                  )}
+                  <div className="flex gap-3">
+                    <Link href={`/learn/${courseId}`} className="flex-1">
+                      <Button variant="outline" className="w-full border-green-200 dark:border-green-800">Course</Button>
+                    </Link>
+                    <Link href="/" className="flex-1">
+                      <Button variant="outline" className="w-full border-green-200 dark:border-green-800">Beranda</Button>
+                    </Link>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </FadeIn>
         </div>
