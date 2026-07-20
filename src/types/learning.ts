@@ -8,6 +8,8 @@ export interface Course {
   color: string;
   sort_order: number;
   is_published: boolean;
+  estimated_duration: string;
+  learning_objectives: string[];
   created_at: string;
 }
 
@@ -16,6 +18,9 @@ export interface Unit {
   course_id: string;
   title: string;
   description: string;
+  learning_objectives: string[];
+  target_words: number;
+  target_description: string;
   sort_order: number;
   created_at: string;
 }
@@ -84,4 +89,46 @@ export interface UnitWithProgress extends Unit {
 export interface LessonWithProgress extends Lesson {
   word_count: number;
   status: "not_started" | "in_progress" | "completed";
+}
+
+export interface UserMistake {
+  id: string;
+  user_id: string;
+  word_id: number;
+  mistake_count: number;
+  context: string;
+  last_mistake_at: string;
+  created_at: string;
+}
+
+export interface UserMistakeWithWord extends UserMistake {
+  word?: {
+    word: string;
+    ipa: string;
+    meaning_id: string;
+    cara_baca: string;
+  };
+}
+
+export interface UserDailyGoal {
+  id: string;
+  user_id: string;
+  daily_xp_goal: number;
+  daily_words_goal: number;
+  daily_lessons_goal: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserDailyTask {
+  id: string;
+  user_id: string;
+  task_date: string;
+  task_type: "learn_words" | "review_words" | "complete_lesson" | "practice_quiz" | "daily_challenge";
+  task_description: string;
+  target_count: number;
+  current_count: number;
+  is_completed: boolean;
+  lesson_id: string | null;
+  created_at: string;
 }

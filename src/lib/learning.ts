@@ -333,3 +333,168 @@ export async function getDailyLearningTasks(): Promise<{
     activeCourses,
   };
 }
+
+// ─── Mistakes (Review Wrong Answers) ──────────────────────────────────
+
+export async function addMistake(wordId: number, context: string = ""): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  // Check if mistake already exists
+  const { data: existing } = await client()
+    .from("user_mistakes")
+    .select("id, mistake_count")
+    .eq("user_id", user.id)
+    .eq("word_id", wordId)
+    .single();
+
+  if (existing) {
+    await client()
+      .from("user_mistakes")
+      .update({
+        mistake_count: existing.mistake_count + 1,
+        context,
+        last_mistake_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+  } else {
+    await client()
+      .from("user_mistakes")
+      .insert({
+        user_id: user.id,
+        word_id: wordId,
+        mistake_count: 1,
+        context,
+      });
+  }
+}
+
+export async function removeMistake(wordId: number): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  await client()
+    .from("user_mistakes")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("word_id", wordId);
+}
+
+export async function getMistakes(): Promise<{ word_id: number; mistake_count: number; context: string }[]> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return [];
+
+  const { data } = await client()
+    .from("user_mistakes")
+    .select("word_id, mistake_count, context")
+    .eq("user_id", user.id)
+    .order("mistake_count", { ascending: false });
+
+  return (data || []) as any[];
+}
+
+// ─── Daily Goals ──────────────────────────────────────────────────────
+
+export async function getDailyGoal(): Promise<{ xp_goal: number; words_goal: number; lessons_goal: number }> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return { xp_goal: 20, words_goal: 5, lessons_goal: 1 };
+
+  const { data } = await client()
+    .from("user_daily_goals")
+    .select("daily_xp_goal, daily_words_goal, daily_lessons_goal")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!data) {
+    // Create default goal
+    await client()
+      .from("user_daily_goals")
+      .insert({
+        user_id: user.id,
+        daily_xp_goal: 20,
+        daily_words_goal: 5,
+        daily_lessons_goal: 1,
+      });
+    return { xp_goal: 20, words_goal: 5, lessons_goal: 1 };
+  }
+
+  return {
+    xp_goal: data.daily_xp_goal || 20,
+    words_goal: data.daily_words_goal || 5,
+    lessons_goal: data.daily_lessons_goal || 1,
+  };
+}
+
+export async function updateDailyGoal(goals: { xp_goal?: number; words_goal?: number; lessons_goal?: number }): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  const update: any = {};
+  if (goals.xp_goal !== undefined) update.daily_xp_goal = goals.xp_goal;
+  if (goals.words_goal !== undefined) update.daily_words_goal = goals.words_goal;
+  if (goals.lessons_goal !== undefined) update.daily_lessons_goal = goals.lessons_goal;
+
+  await client()
+    .from("user_daily_goals")
+    .upsert({
+      user_id: user.id,
+      ...update,
+    }, { onConflict: "user_id" });
+}
+
+// ─── Daily Progress (today's progress) ────────────────────────────────
+
+export async function getTodayProgress(): Promise<{
+  wordsLearned: number;
+  lessonsCompleted: number;
+  xpEarned: number;
+  reviewCompleted: number;
+}> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return { wordsLearned: 0, lessonsCompleted: 0, xpEarned: 0, reviewCompleted: 0 };
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // Count completed lessons today
+  const { count: lessonsCompleted } = await client()
+    .from("user_lesson_progress")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .gte("completed_at", today);
+
+  // Count words learned today (from user_words where last_review_date is today)
+  const { count: wordsLearned } = await client()
+    .from("user_words")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("last_review_date", today);
+
+  // XP from gamification (read from localStorage)
+  let xpEarned = 0;
+  try {
+    const saved = localStorage.getItem("engli-gamification");
+    if (saved) {
+      const state = JSON.parse(saved);
+      const savedDate = state.dailyXpDate;
+      if (savedDate === today) {
+        xpEarned = state.dailyXp || 0;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Count review completed today (words reviewed via flashcard)
+  const { count: reviewCompleted } = await client()
+    .from("user_words")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .not("last_review_date", "is", null)
+    .gte("last_review_date", today);
+
+  return {
+    wordsLearned: wordsLearned || 0,
+    lessonsCompleted: lessonsCompleted || 0,
+    xpEarned,
+    reviewCompleted: reviewCompleted || 0,
+  };
+}

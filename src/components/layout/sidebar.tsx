@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, BookOpen, Heart, Trophy, User, BarChart3, Sparkles, LogIn, Brain, GraduationCap } from "lucide-react";
+import { Home, Search, BookOpen, Heart, Trophy, User, BarChart3, Sparkles, LogIn, Brain, GraduationCap, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 import { useAuth } from "@/components/auth/auth-context";
@@ -10,12 +10,11 @@ import { useAuth } from "@/components/auth/auth-context";
 const navItems = [
   { href: "/", icon: Home, label: "Beranda" },
   { href: "/learn", icon: GraduationCap, label: "Belajar" },
+  { href: "/practice", icon: Brain, label: "Latihan" },
   { href: "/search", icon: Search, label: "Jelajahi" },
-  { href: "/flashcard", icon: BookOpen, label: "Flashcard" },
-  { href: "/quiz", icon: Brain, label: "Quiz" },
   { href: "/saved", icon: Heart, label: "Tersimpan" },
+  { href: "/progress", icon: Target, label: "Progress" },
   { href: "/achievements", icon: Trophy, label: "Pencapaian" },
-  { href: "/statistics", icon: BarChart3, label: "Statistik" },
 ];
 
 export function Sidebar() {
