@@ -518,6 +518,173 @@ export async function getTodayProgress(): Promise<{
   };
 }
 
+// ─── Daily Tasks (Structured) ────────────────────────────────────────
+
+export type DailyTaskItem = {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  color: string;
+  href: string;
+  completed: boolean;
+  count?: number;
+  countLabel?: string;
+};
+
+export async function getDailyTasks(): Promise<DailyTaskItem[]> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return [];
+
+  const today = new Date().toISOString().split("T")[0];
+  const tasks: DailyTaskItem[] = [];
+
+  // Task 1: Continue Learning (next lesson)
+  const { data: enrollments } = await client()
+    .from("user_course_progress")
+    .select("course_id")
+    .eq("user_id", user.id)
+    .eq("is_active", true);
+
+  const activeCourseIds = (enrollments || []).map((e: any) => e.course_id);
+  let nextLessonHref = "/learn";
+  let nextLessonLabel = "Mulai course baru";
+  let nextLessonCompleted = false;
+
+  if (activeCourseIds.length > 0) {
+    const { data: courses } = await client()
+      .from("courses")
+      .select("*")
+      .in("id", activeCourseIds);
+
+    for (const course of (courses || []) as Course[]) {
+      const result = await getNextLesson(course.id);
+      if (result) {
+        nextLessonHref = `/learn/${course.id}/${result.lesson.id}`;
+        nextLessonLabel = result.lesson.title;
+        break;
+      }
+    }
+
+    // Check if all lessons in all active courses are completed
+    if (nextLessonLabel === "Mulai course baru") {
+      nextLessonCompleted = true;
+    }
+  }
+
+  // Check today's lesson completion
+  const { count: todayLessons } = await client()
+    .from("user_lesson_progress")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .gte("completed_at", today);
+
+  tasks.push({
+    id: "lesson",
+    label: "Continue Learning",
+    description: nextLessonLabel,
+    icon: "BookOpen",
+    color: "violet",
+    href: nextLessonHref,
+    completed: (todayLessons || 0) > 0 && nextLessonCompleted,
+  });
+
+  // Task 2: Review Due Words (SRS)
+  const { count: dueCount } = await client()
+    .from("user_words")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .lte("next_review_date", today);
+
+  const dueWordsCount = dueCount || 0;
+
+  // Count words reviewed today
+  const { count: reviewedToday } = await client()
+    .from("user_words")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("last_review_date", today);
+
+  tasks.push({
+    id: "review",
+    label: "Review Kata",
+    description: dueWordsCount > 0 ? `${dueWordsCount} kata perlu direview` : "Semua kata sudah di-review",
+    icon: "RotateCcw",
+    color: "orange",
+    href: "/flashcard",
+    completed: dueWordsCount === 0 || (reviewedToday || 0) >= dueWordsCount,
+    count: dueWordsCount,
+    countLabel: "kata",
+  });
+
+  // Task 3: Practice Quiz
+  const { count: quizToday } = await client()
+    .from("user_lesson_progress")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .gte("completed_at", today);
+
+  tasks.push({
+    id: "practice",
+    label: "Practice Quiz",
+    description: "Uji pemahamanmu",
+    icon: "Target",
+    color: "blue",
+    href: "/quiz",
+    completed: false, // Quiz is always optional
+  });
+
+  // Task 4: Review Mistakes
+  const { count: mistakesCount } = await client()
+    .from("user_mistakes")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  tasks.push({
+    id: "mistakes",
+    label: "Review Kesalahan",
+    description: (mistakesCount || 0) > 0 ? `${mistakesCount} kesalahan perlu diulang` : "Tidak ada kesalahan",
+    icon: "AlertTriangle",
+    color: "red",
+    href: "/practice",
+    completed: (mistakesCount || 0) === 0,
+    count: mistakesCount || 0,
+    countLabel: "kesalahan",
+  });
+
+  // Task 5: Daily Challenge (mixed quiz from all learned words)
+  const { count: totalLearned } = await client()
+    .from("user_words")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  // Check if daily challenge done today (via localStorage since it's gamification)
+  let dailyChallengeDone = false;
+  try {
+    const saved = localStorage.getItem("engli-gamification");
+    if (saved) {
+      const state = JSON.parse(saved);
+      dailyChallengeDone = state.dailyChallengeDate === today;
+    }
+  } catch { /* ignore */ }
+
+  tasks.push({
+    id: "challenge",
+    label: "Daily Challenge",
+    description: (totalLearned || 0) >= 5 ? "Quiz campuran dari semua materi" : "Pelajari minimal 5 kata dulu",
+    icon: "Zap",
+    color: "amber",
+    href: "/quiz",
+    completed: dailyChallengeDone,
+    count: (totalLearned || 0) >= 5 ? 10 : 0,
+    countLabel: "soal",
+  });
+
+  return tasks;
+}
+
 // ─── Lesson Content (Grammar) ─────────────────────────────────────────
 
 export async function getLessonContent(lessonId: string): Promise<LessonContent[]> {

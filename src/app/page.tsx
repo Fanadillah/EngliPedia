@@ -14,6 +14,9 @@ import {
   Headphones,
   ArrowRight,
   RotateCcw,
+  CheckCircle2,
+  Target,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -24,7 +27,7 @@ import { AnimatedWord, FadeIn, SlideUp, StaggerContainer, StaggerItem } from "@/
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { motion } from "motion/react";
 import { loadState, checkStreak } from "@/lib/gamification";
-import { getDailyLearningTasks, getDailyGoal, getTodayProgress } from "@/lib/learning";
+import { getDailyLearningTasks, getDailyGoal, getTodayProgress, getDailyTasks, type DailyTaskItem } from "@/lib/learning";
 import { useToast } from "@/components/ui/toast-provider";
 
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
@@ -46,6 +49,7 @@ export default function Home() {
     nextLesson: { lesson: any; unit: any; course: any } | null;
     dueWordsCount: number;
   } | null>(null);
+  const [dailyTasks, setDailyTasks] = useState<DailyTaskItem[]>([]);
   const [dailyGoal, setDailyGoal] = useState({ xp_goal: 20, words_goal: 5, lessons_goal: 1 });
   const [todayProgress, setTodayProgress] = useState({
     wordsLearned: 0,
@@ -118,10 +122,11 @@ export default function Home() {
 
   const loadDailyLearning = async () => {
     try {
-      const [tasks, goal, progress] = await Promise.all([
+      const [tasks, goal, progress, structuredTasks] = await Promise.all([
         getDailyLearningTasks(),
         getDailyGoal(),
         getTodayProgress(),
+        getDailyTasks(),
       ]);
       setDailyTask({
         nextLesson: tasks.nextLesson,
@@ -129,6 +134,7 @@ export default function Home() {
       });
       setDailyGoal(goal);
       setTodayProgress(progress);
+      setDailyTasks(structuredTasks);
     } catch (error) {
       console.error("Failed to load daily tasks:", error);
     }
@@ -192,7 +198,7 @@ export default function Home() {
                     <h3 className="font-semibold text-sm text-foreground">Hari Ini</h3>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {todayProgress.xpEarned}/{dailyGoal.xp_goal} XP
+                    {dailyTasks.filter(t => t.completed).length}/{dailyTasks.length} selesai
                   </span>
                 </div>
 
@@ -204,65 +210,58 @@ export default function Home() {
                       style={{ width: `${dailyGoal.xp_goal > 0 ? Math.min(100, (todayProgress.xpEarned / dailyGoal.xp_goal) * 100) : 0}%` }}
                     />
                   </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-muted-foreground">{todayProgress.xpEarned} XP hari ini</span>
+                    <span className="text-[10px] text-muted-foreground">{dailyGoal.xp_goal} XP target</span>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {dailyTask?.nextLesson && (
-                    <Link href={`/learn/${dailyTask.nextLesson.course.id}/${dailyTask.nextLesson.lesson.id}`}>
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {todayProgress.lessonsCompleted > 0 ? "Lanjutkan" : "Mulai"}: {dailyTask.nextLesson.lesson.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {dailyTask.nextLesson.unit.title} • {dailyTask.nextLesson.course.title}
-                          </p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-violet-500" />
-                      </div>
-                    </Link>
-                  )}
+                {/* Task Checklist */}
+                <div className="space-y-1.5">
+                  {dailyTasks.map((task) => {
+                    const iconMap: Record<string, any> = {
+                      BookOpen, RotateCcw, Target, AlertTriangle, Zap,
+                    };
+                    const colorMap: Record<string, string> = {
+                      violet: "bg-violet-100 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400",
+                      orange: "bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
+                      blue: "bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
+                      red: "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400",
+                      amber: "bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
+                    };
+                    const Icon = iconMap[task.icon] || BookOpen;
 
-                  {dailyTask && dailyTask.dueWordsCount > 0 && (
-                    <Link href="/flashcard">
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
-                          <RotateCcw className="w-5 h-5 text-white" />
+                    return (
+                      <Link key={task.id} href={task.href}>
+                        <div className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${
+                          task.completed
+                            ? "bg-green-50 dark:bg-green-900/10 opacity-70"
+                            : "bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30"
+                        }`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                            task.completed
+                              ? "bg-green-100 dark:bg-green-900/30"
+                              : colorMap[task.color] || colorMap.violet
+                          }`}>
+                            {task.completed ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Icon className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-medium ${task.completed ? "text-green-600 dark:text-green-400 line-through" : "text-foreground"}`}>
+                              {task.label}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">{task.description}</p>
+                          </div>
+                          {!task.completed && (
+                            <ArrowRight className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">
-                            Review {dailyTask.dueWordsCount} kata
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Kata yang perlu diulang
-                          </p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-orange-500" />
-                      </div>
-                    </Link>
-                  )}
-
-                  {dailyTask && !dailyTask.nextLesson && dailyTask.dueWordsCount === 0 && (
-                    <Link href="/learn">
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">
-                            Semua tugas selesai!
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Mulai course baru
-                          </p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-green-500" />
-                      </div>
-                    </Link>
-                  )}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </div>
