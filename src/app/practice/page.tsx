@@ -127,24 +127,27 @@ export default function PracticePage() {
             </StaggerItem>
           )}
 
-          {/* Coming Soon */}
+          {/* Listening */}
           <StaggerItem>
-            <div className="rounded-2xl bg-white dark:bg-gray-900 border border-violet-100 dark:border-violet-900/30 shadow-sm opacity-60">
-              <div className="p-5 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center">
-                  <Headphones className="w-7 h-7 text-emerald-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-foreground">Listening</h3>
-                    <Badge className="bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 text-xs">
-                      Segera
-                    </Badge>
+            <Link href="/listening">
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-orange-100 dark:border-orange-900/30 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 to-amber-500" />
+                <div className="p-5 flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center">
+                    <Headphones className="w-7 h-7 text-orange-500" />
                   </div>
-                  <p className="text-sm text-muted-foreground">Dengar dan pahami kosakata</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground">Listening</h3>
+                    <p className="text-sm text-muted-foreground">Dengar dan pahami kosakata</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </Link>
           </StaggerItem>
         </StaggerContainer>
       </div>

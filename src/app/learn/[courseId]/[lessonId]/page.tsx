@@ -36,6 +36,16 @@ function shuffleArray<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
+type ListeningQuestion = {
+  type: "multiple_choice" | "dictation" | "sentence_mcq" | "sentence_blank";
+  word: Word & { sort_order: number };
+  audio: string;
+  correctAnswer: string;
+  options?: string[];
+  sentence?: string;
+  sentenceTranslation?: string;
+};
+
 export default function LessonPage() {
   const params = useParams();
   const courseId = params.courseId as string;
@@ -61,11 +71,13 @@ export default function LessonPage() {
   const [fbScore, setFbScore] = useState(0);
 
   // Listening state
-  const [listenWords, setListenWords] = useState<(Word & { sort_order: number })[]>([]);
-  const [listenIndex, setListenIndex] = useState(0);
+  const [listenQuestions, setListenQuestions] = useState<ListeningQuestion[]>([]);
+  const [listenQIndex, setListenQIndex] = useState(0);
   const [listenInput, setListenInput] = useState("");
   const [listenCorrect, setListenCorrect] = useState<boolean | null>(null);
   const [listenScore, setListenScore] = useState(0);
+  const [listenSpeed, setListenSpeed] = useState(1);
+  const [listenSelectedOption, setListenSelectedOption] = useState<string | null>(null);
 
   // Writing state
   const [writingWords, setWritingWords] = useState<(Word & { sort_order: number })[]>([]);
@@ -113,16 +125,85 @@ export default function LessonPage() {
   }, [lessonId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Helpers ───────────────────────────────────────────────────────
-  const playPronunciation = (text: string) => {
+  const playPronunciation = (text: string, rate?: number) => {
     if ("speechSynthesis" in window) {
+      speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "en-US";
-      utterance.rate = 0.8;
+      utterance.rate = rate ?? listenSpeed;
       speechSynthesis.speak(utterance);
     }
   };
 
+  // ─── Listening Question Generator ────────────────────────────────
   const normalize = (s: string) => s.toLowerCase().trim().replace(/[.,!?;'"]/g, "");
+
+  const generateListeningQuestions = (): ListeningQuestion[] => {
+    const questions: ListeningQuestion[] = [];
+    const allMeanings = words.map((w) => w.meaning_id);
+
+    // Multiple Choice: hear word → pick meaning (2 questions)
+    const mcqWords = shuffleArray(words).slice(0, 2);
+    for (const w of mcqWords) {
+      const distractors = shuffleArray(allMeanings.filter((m) => m !== w.meaning_id)).slice(0, 3);
+      const options = shuffleArray([w.meaning_id, ...distractors]);
+      questions.push({
+        type: "multiple_choice",
+        word: w,
+        audio: w.word,
+        correctAnswer: w.meaning_id,
+        options,
+      });
+    }
+
+    // Dictation: hear word → type it (3 questions)
+    const dictWords = shuffleArray(words).slice(0, 3);
+    for (const w of dictWords) {
+      questions.push({
+        type: "dictation",
+        word: w,
+        audio: w.word,
+        correctAnswer: w.word,
+      });
+    }
+
+    // Sentence MCQ: hear sentence → pick meaning (2 questions)
+    const sentenceWords = shuffleArray(words.filter((w) => w.example && w.example_id)).slice(0, 2);
+    for (const w of sentenceWords) {
+      const otherMeanings = shuffleArray(
+        words.filter((x) => x.id !== w.id && x.example_id).map((x) => x.example_id)
+      ).slice(0, 3);
+      const options = shuffleArray([w.example_id, ...otherMeanings]);
+      questions.push({
+        type: "sentence_mcq",
+        word: w,
+        audio: w.example,
+        correctAnswer: w.example_id,
+        options,
+        sentence: w.example,
+        sentenceTranslation: w.example_id,
+      });
+    }
+
+    // Sentence Blank: hear sentence → type missing word (1 question)
+    const blankWord = shuffleArray(words.filter((w) => w.example)).slice(0, 1)[0];
+    if (blankWord) {
+      const blankedSentence = blankWord.example.replace(
+        new RegExp(`\\b${blankWord.word}\\b`, "i"),
+        "______"
+      );
+      questions.push({
+        type: "sentence_blank",
+        word: blankWord,
+        audio: blankWord.example,
+        correctAnswer: blankWord.word,
+        sentence: blankedSentence,
+        sentenceTranslation: blankWord.example_id,
+      });
+    }
+
+    return shuffleArray(questions);
+  };
 
   // ─── Intro → Vocabulary ───────────────────────────────────────────
   const handleStartLesson = () => {
@@ -199,40 +280,50 @@ export default function LessonPage() {
 
   // ─── Listening Step ────────────────────────────────────────────────
   const startListening = () => {
-    const shuffled = shuffleArray(words).slice(0, Math.min(5, words.length));
-    setListenWords(shuffled);
-    setListenIndex(0);
+    const questions = generateListeningQuestions();
+    setListenQuestions(questions);
+    setListenQIndex(0);
     setListenInput("");
     setListenCorrect(null);
     setListenScore(0);
-    setTotalActivities((prev) => prev + shuffled.length);
+    setListenSpeed(1);
+    setListenSelectedOption(null);
+    setTotalActivities((prev) => prev + questions.length);
 
-    // Auto play first word
     setTimeout(() => {
-      if (shuffled.length > 0) playPronunciation(shuffled[0].word);
+      if (questions.length > 0) playPronunciation(questions[0].audio);
     }, 500);
 
     setStep("listening");
   };
 
   const handleListenSubmit = () => {
-    const correct = normalize(listenInput) === normalize(listenWords[listenIndex].word);
+    const q = listenQuestions[listenQIndex];
+    let correct = false;
+
+    if (q.type === "multiple_choice" || q.type === "sentence_mcq") {
+      correct = listenSelectedOption === q.correctAnswer;
+    } else {
+      correct = normalize(listenInput) === normalize(q.correctAnswer);
+    }
+
     setListenCorrect(correct);
 
     if (correct) {
       setListenScore((prev) => prev + 1);
       setCompletedActivities((prev) => prev + 1);
     } else {
-      addMistake(listenWords[listenIndex].id, lessonTitle);
+      addMistake(q.word.id, lessonTitle);
     }
 
     setTimeout(() => {
-      if (listenIndex < listenWords.length - 1) {
-        const nextIdx = listenIndex + 1;
-        setListenIndex(nextIdx);
+      if (listenQIndex < listenQuestions.length - 1) {
+        const nextIdx = listenQIndex + 1;
+        setListenQIndex(nextIdx);
         setListenInput("");
         setListenCorrect(null);
-        playPronunciation(listenWords[nextIdx].word);
+        setListenSelectedOption(null);
+        setTimeout(() => playPronunciation(listenQuestions[nextIdx].audio), 300);
       } else {
         startWriting();
       }
@@ -534,61 +625,205 @@ export default function LessonPage() {
 
   // ─── LISTENING ─────────────────────────────────────────────────────
   if (step === "listening") {
-    const w = listenWords[listenIndex];
+    const q = listenQuestions[listenQIndex];
+    if (!q) return null;
+
+    const typeLabel: Record<ListeningQuestion["type"], string> = {
+      multiple_choice: "Pilihan Ganda",
+      dictation: "Dictation",
+      sentence_mcq: "Dengar Kalimat",
+      sentence_blank: "Isi Kata",
+    };
+    const typeColor: Record<ListeningQuestion["type"], string> = {
+      multiple_choice: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+      dictation: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      sentence_mcq: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+      sentence_blank: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    };
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50/50 via-amber-50/30 to-yellow-50/50 dark:from-orange-950/20 dark:via-amber-950/10 dark:to-yellow-950/20">
         <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
-          <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
-            <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">Listening</Badge>
-            <span>{listenIndex + 1}/{listenWords.length}</span>
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+            <Badge className={typeColor[q.type]}>{typeLabel[q.type]}</Badge>
+            <span>{listenQIndex + 1}/{listenQuestions.length}</span>
+            <span className="ml-auto text-orange-600 dark:text-orange-400 font-medium">{listenScore}/{listenQIndex + (listenCorrect !== null ? 1 : 0)}</span>
           </div>
-          <div className="h-2 bg-orange-100 dark:bg-orange-900/30 rounded-full overflow-hidden mb-6">
-            <motion.div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${((listenIndex + 1) / listenWords.length) * 100}%` }} transition={{ duration: 0.3 }} />
+          <div className="h-2 bg-orange-100 dark:bg-orange-900/30 rounded-full overflow-hidden mb-4">
+            <motion.div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${((listenQIndex + 1) / listenQuestions.length) * 100}%` }} transition={{ duration: 0.3 }} />
+          </div>
+
+          {/* Speed control */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            {[0.75, 1, 1.25].map((s) => (
+              <button
+                key={s}
+                onClick={() => setListenSpeed(s)}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  listenSpeed === s
+                    ? "bg-orange-500 text-white"
+                    : "bg-white dark:bg-gray-900 border border-orange-200 dark:border-orange-800 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s}x
+              </button>
+            ))}
           </div>
 
           <FadeIn>
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-6">Dengarkan dan ketik kata yang kamu dengar</p>
-
+            <div className="text-center py-4">
+              {/* Play button */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => playPronunciation(w.word)}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center mx-auto shadow-lg mb-8"
+                onClick={() => playPronunciation(q.audio)}
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center mx-auto shadow-lg mb-6"
               >
                 <Headphones className="w-10 h-10 text-white" />
               </motion.button>
 
-              <div className="space-y-4 max-w-sm mx-auto">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={listenInput}
-                  onChange={(e) => setListenInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && listenInput && !listenCorrect && handleListenSubmit()}
-                  placeholder="Ketik yang kamu dengar..."
-                  disabled={listenCorrect !== null}
-                  className="w-full px-4 py-3 rounded-xl border border-orange-200 dark:border-orange-800 bg-white dark:bg-gray-900 text-foreground text-center text-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-                  autoFocus
-                />
+              {/* Question-specific UI */}
+              {q.type === "multiple_choice" && q.options && (
+                <div className="space-y-3 max-w-sm mx-auto">
+                  <p className="text-sm text-muted-foreground mb-2">Pilih arti yang benar:</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {q.options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => listenCorrect === null && setListenSelectedOption(opt)}
+                        disabled={listenCorrect !== null}
+                        className={`p-3 rounded-xl border text-sm font-medium transition-all text-left ${
+                          listenCorrect !== null && opt === q.correctAnswer
+                            ? "border-green-400 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                            : listenCorrect !== null && opt === listenSelectedOption
+                            ? "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                            : listenSelectedOption === opt
+                            ? "border-orange-400 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400"
+                            : "border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                {listenCorrect === null ? (
-                  <Button onClick={handleListenSubmit} disabled={!listenInput} className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
-                    Cek Jawaban
-                  </Button>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-                    {listenCorrect ? (
-                      <p className="text-green-600 dark:text-green-400 font-medium">Benar!</p>
-                    ) : (
-                      <div>
-                        <p className="text-red-600 dark:text-red-400 font-medium mb-1">Jawaban: {w.word}</p>
-                        <p className="text-sm text-muted-foreground">{w.meaning_id}</p>
-                      </div>
+              {q.type === "sentence_mcq" && q.options && (
+                <div className="space-y-3 max-w-sm mx-auto">
+                  <p className="text-sm text-muted-foreground mb-2">Pilih terjemahan kalimat yang benar:</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {q.options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => listenCorrect === null && setListenSelectedOption(opt)}
+                        disabled={listenCorrect !== null}
+                        className={`p-3 rounded-xl border text-sm font-medium transition-all text-left ${
+                          listenCorrect !== null && opt === q.correctAnswer
+                            ? "border-green-400 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                            : listenCorrect !== null && opt === listenSelectedOption
+                            ? "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                            : listenSelectedOption === opt
+                            ? "border-orange-400 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400"
+                            : "border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {q.type === "dictation" && (
+                <div className="space-y-4 max-w-sm mx-auto">
+                  <p className="text-sm text-muted-foreground">Ketik kata yang kamu dengar:</p>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={listenInput}
+                    onChange={(e) => setListenInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && listenInput && !listenCorrect && handleListenSubmit()}
+                    placeholder="Ketik di sini..."
+                    disabled={listenCorrect !== null}
+                    className="w-full px-4 py-3 rounded-xl border border-orange-200 dark:border-orange-800 bg-white dark:bg-gray-900 text-foreground text-center text-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {q.type === "sentence_blank" && (
+                <div className="space-y-4 max-w-sm mx-auto">
+                  <p className="text-sm text-muted-foreground mb-2">Dengar kalimat, isi kata yang kosong:</p>
+                  <div className="bg-white dark:bg-gray-900 rounded-xl border border-orange-200 dark:border-orange-800 p-4 mb-4">
+                    <p className="text-lg font-medium text-foreground">{q.sentence}</p>
+                    {q.sentenceTranslation && (
+                      <p className="text-sm text-muted-foreground mt-2">{q.sentenceTranslation}</p>
                     )}
-                  </motion.div>
-                )}
-              </div>
+                  </div>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={listenInput}
+                    onChange={(e) => setListenInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && listenInput && !listenCorrect && handleListenSubmit()}
+                    placeholder="Ketik kata yang kosong..."
+                    disabled={listenCorrect !== null}
+                    className="w-full px-4 py-3 rounded-xl border border-orange-200 dark:border-orange-800 bg-white dark:bg-gray-900 text-foreground text-center text-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {/* Submit button for text inputs */}
+              {(q.type === "dictation" || q.type === "sentence_blank") && (
+                <div className="mt-4 max-w-sm mx-auto">
+                  {listenCorrect === null ? (
+                    <Button onClick={handleListenSubmit} disabled={!listenInput} className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
+                      Cek Jawaban
+                    </Button>
+                  ) : (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+                      {listenCorrect ? (
+                        <p className="text-green-600 dark:text-green-400 font-medium">Benar!</p>
+                      ) : (
+                        <div>
+                          <p className="text-red-600 dark:text-red-400 font-medium mb-1">Jawaban: {q.correctAnswer}</p>
+                          {q.type === "dictation" && <p className="text-sm text-muted-foreground">{q.word.meaning_id}</p>}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
+              {/* Submit button for MCQ types */}
+              {(q.type === "multiple_choice" || q.type === "sentence_mcq") && (
+                <div className="mt-4 max-w-sm mx-auto">
+                  {listenCorrect === null ? (
+                    <Button onClick={handleListenSubmit} disabled={!listenSelectedOption} className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
+                      Cek Jawaban
+                    </Button>
+                  ) : (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+                      {listenCorrect ? (
+                        <p className="text-green-600 dark:text-green-400 font-medium">Benar!</p>
+                      ) : (
+                        <p className="text-red-600 dark:text-red-400 font-medium">Jawaban: {q.correctAnswer}</p>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
+              {/* Replay button */}
+              <button
+                onClick={() => playPronunciation(q.audio)}
+                className="mt-4 text-sm text-orange-600 dark:text-orange-400 hover:underline"
+              >
+                Putar Ulang
+              </button>
             </div>
           </FadeIn>
         </div>
@@ -687,7 +922,7 @@ export default function LessonPage() {
                   { label: "Vocabulary", icon: BookOpen, color: "text-violet-500", count: words.length },
                   { label: "Pronunciation", icon: Volume2, color: "text-blue-500", count: words.length },
                   { label: "Fill in the Blank", icon: Pen, color: "text-green-500", count: fbWords.length, score: fbScore },
-                  { label: "Listening", icon: Headphones, color: "text-orange-500", count: listenWords.length, score: listenScore },
+                  { label: "Listening", icon: Headphones, color: "text-orange-500", count: listenQuestions.length, score: listenScore },
                   { label: "Writing", icon: Type, color: "text-pink-500", count: writingWords.length, score: writingScore },
                 ].map((a) => (
                   <div key={a.label} className="flex items-center justify-between text-sm">
