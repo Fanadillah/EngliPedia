@@ -64,8 +64,6 @@ export interface Database {
           repetitions: number;
           last_review_date: string | null;
           next_review_date: string | null;
-          last_reviewed: string;
-          next_review: string;
           created_at: string;
           updated_at: string;
         };
@@ -80,8 +78,6 @@ export interface Database {
           repetitions?: number;
           last_review_date?: string | null;
           next_review_date?: string | null;
-          last_reviewed?: string;
-          next_review?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -96,8 +92,6 @@ export interface Database {
           repetitions?: number;
           last_review_date?: string | null;
           next_review_date?: string | null;
-          last_reviewed?: string;
-          next_review?: string;
           created_at?: string;
           updated_at?: string;
         };

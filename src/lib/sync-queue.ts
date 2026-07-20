@@ -102,9 +102,16 @@ export async function drainQueue(): Promise<void> {
       switch (item.operation) {
         case "upsert": {
           // Inject user_id for user_profiles if missing
-          const payload = item.table === "user_profiles" && !item.payload.id
-            ? { ...item.payload, id: user.id }
-            : item.payload;
+          let payload = item.payload;
+          if (item.table === "user_profiles" && !payload.id) {
+            payload = { ...payload, id: user.id };
+          }
+          // Inject user_id for user_words (array) if missing
+          if (item.table === "user_words" && Array.isArray(payload)) {
+            payload = payload.map((row: Record<string, unknown>) =>
+              row.user_id ? row : { ...row, user_id: user.id }
+            );
+          }
           const { error } = await supabase
             .from(item.table)
             .upsert(payload, { onConflict: item.table === "user_words" ? "user_id,word_id" : "id" });
