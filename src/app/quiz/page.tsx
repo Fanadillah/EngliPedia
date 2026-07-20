@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sparkles, Check, X, Brain, ArrowLeft, RotateCcw,
-  Trophy, Zap, ChevronRight,
+  Trophy, Zap, ChevronRight, Volume2, ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
@@ -18,16 +18,20 @@ import { useRouter } from "next/navigation";
 
 type AnswerState = "waiting" | "correct" | "incorrect" | "timeout";
 type Difficulty = "basic" | "intermediate" | "advanced";
+type QuizMode = "en-id" | "id-en";
 
 interface QuizConfig {
   questionCount: number;
   difficulty: "all" | Difficulty;
+  mode: QuizMode;
 }
 
 interface QuizQuestion {
   word: Word;
+  questionText: string;
   options: string[];
   correctIndex: number;
+  isReverse: boolean;
 }
 
 interface QuizResult {
@@ -73,6 +77,7 @@ export default function QuizPage() {
   const [config, setConfig] = useState<QuizConfig>({
     questionCount: 10,
     difficulty: "all",
+    mode: "en-id",
   });
 
   // Quiz state
@@ -85,6 +90,8 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
   const startTimeRef = useRef(0);
   const autoNextRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -124,27 +131,46 @@ export default function QuizPage() {
         });
       }
 
-      // Generate questions with 4 options each (1 correct + 3 random distractors)
+      const isReverse = config.mode === "id-en";
+      // For reverse mode: all English words become distractors
+      const allEnglishWords = (data as Word[]).map((w) => w.word).filter(Boolean);
+      // For normal mode: all meanings become distractors
       const allMeanings = (data as Word[]).map((w) => w.meaning_id).filter(Boolean);
 
       const generated: QuizQuestion[] = selected.map((word) => {
-        // Get 3 random wrong meanings (not the correct one)
-        const distractors = shuffleArray(
-          allMeanings.filter((m) => m !== word.meaning_id)
-        ).slice(0, 3);
+        if (isReverse) {
+          // Reverse: show Indonesian, pick English
+          const distractors = shuffleArray(
+            allEnglishWords.filter((w) => w !== word.word)
+          ).slice(0, 3);
 
-        const options = shuffleArray([
-          word.meaning_id,
-          ...distractors.map((d) => d || "-"),
-        ]);
+          const options = shuffleArray([word.word, ...distractors]);
+          const correctIndex = options.indexOf(word.word);
 
-        const correctIndex = options.indexOf(word.meaning_id);
+          return {
+            word,
+            questionText: word.meaning_id,
+            options,
+            correctIndex,
+            isReverse: true,
+          };
+        } else {
+          // Normal: show English, pick Indonesian meaning
+          const distractors = shuffleArray(
+            allMeanings.filter((m) => m !== word.meaning_id)
+          ).slice(0, 3);
 
-        return {
-          word,
-          options,
-          correctIndex,
-        };
+          const options = shuffleArray([word.meaning_id, ...distractors.map((d) => d || "-")]);
+          const correctIndex = options.indexOf(word.meaning_id);
+
+          return {
+            word,
+            questionText: word.word,
+            options,
+            correctIndex,
+            isReverse: false,
+          };
+        }
       });
 
       setQuestions(generated);
@@ -159,12 +185,14 @@ export default function QuizPage() {
 
   const startQuiz = () => {
     generateQuestions().then((success) => {
-      if (!success) return; // Don't transition if error
+      if (!success) return;
       setPhase("active");
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setAnswerState("waiting");
       setResults([]);
+      setStreak(0);
+      setBestStreak(0);
       startTimeRef.current = Date.now();
     });
   };
@@ -182,7 +210,21 @@ export default function QuizPage() {
       setAnswerState("correct");
       awardXp("learn_flashcard"); // +5 XP
 
-      // Vibrant feedback
+      // Update streak
+      setStreak((prev) => {
+        const newStreak = prev + 1;
+        setBestStreak((best) => Math.max(best, newStreak));
+        // Show streak milestone toast
+        if (newStreak === 5) {
+          showToast({ type: "streak", message: "🔥 Streak 5! Hebat!", duration: 2000 });
+        } else if (newStreak === 10) {
+          showToast({ type: "streak", message: "🔥🔥 Streak 10! Luar biasa!", duration: 2000 });
+        } else if (newStreak === 15) {
+          showToast({ type: "streak", message: "🔥🔥🔥 Streak 15! Tak terbendung!", duration: 2000 });
+        }
+        return newStreak;
+      });
+
       showToast({
         type: "success",
         message: `✅ ${getXpEventMessage("learn_flashcard")}`,
@@ -190,6 +232,7 @@ export default function QuizPage() {
       });
     } else {
       setAnswerState("incorrect");
+      setStreak(0); // Reset streak on wrong answer
     }
 
     // Save result
@@ -301,6 +344,35 @@ export default function QuizPage() {
 
             {/* Settings */}
             <div className="bg-card rounded-2xl border border-border p-5 space-y-5">
+              {/* Quiz Mode */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  Mode Quiz
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfig((c) => ({ ...c, mode: "en-id" }))}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                      config.mode === "en-id"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    EN → ID
+                  </button>
+                  <button
+                    onClick={() => setConfig((c) => ({ ...c, mode: "id-en" }))}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                      config.mode === "id-en"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    ID → EN
+                  </button>
+                </div>
+              </div>
+
               {/* Question count */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -395,9 +467,16 @@ export default function QuizPage() {
             <span className="text-xs font-medium text-muted-foreground">
               Soal {currentIndex + 1} / {questions.length}
             </span>
-            <span className="text-xs text-muted-foreground">
-              ✅ {correctCount}
-            </span>
+            <div className="flex items-center gap-3">
+              {streak >= 3 && (
+                <span className="text-xs font-bold text-orange-500">
+                  🔥 {streak}
+                </span>
+              )}
+              <span className="text-xs text-muted-foreground">
+                ✅ {correctCount}
+              </span>
+            </div>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <motion.div
@@ -421,16 +500,36 @@ export default function QuizPage() {
               {/* Word */}
               <div className="py-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Pilih arti yang benar
+                  {currentQuestion.isReverse ? "Pilih kata Inggris yang benar" : "Pilih arti yang benar"}
                 </p>
                 <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-                  {currentQuestion.word.word}
+                  {currentQuestion.questionText}
                 </h2>
-                {currentQuestion.word.ipa && (
+                {currentQuestion.isReverse && currentQuestion.word.ipa && (
                   <p className="text-sm font-mono text-muted-foreground mt-2">
                     {currentQuestion.word.ipa}
                   </p>
                 )}
+              </div>
+
+              {/* Audio button */}
+              <div className="flex justify-center mb-3">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    if ("speechSynthesis" in window) {
+                      window.speechSynthesis.cancel();
+                      const u = new SpeechSynthesisUtterance(currentQuestion.word.word);
+                      u.lang = "en-US";
+                      u.rate = 0.8;
+                      window.speechSynthesis.speak(u);
+                    }
+                  }}
+                  className="p-2.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                >
+                  <Volume2 className="w-5 h-5 text-primary" />
+                </motion.button>
               </div>
 
               {/* Level badge */}
@@ -643,8 +742,17 @@ export default function QuizPage() {
               </div>
             </div>
 
+            {/* Best Streak */}
+            {bestStreak >= 3 && (
+              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30 rounded-xl p-3 text-center">
+                <p className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                  🔥 Best Streak: {bestStreak}x berturut-turut!
+                </p>
+              </div>
+            )}
+
             <div className="text-center text-xs text-muted-foreground">
-              Durasi: {minutes > 0 ? `${minutes}m ` : ""}{seconds}d
+              Durasi: {minutes > 0 ? `${minutes}m ` : ""}{seconds}d • Mode: {config.mode === "en-id" ? "EN → ID" : "ID → EN"}
             </div>
 
             {/* Wrong answers review */}

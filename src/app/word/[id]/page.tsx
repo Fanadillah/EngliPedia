@@ -26,6 +26,7 @@ import { InfoBar } from "@/components/word/info-bar";
 import { motion } from "motion/react";
 import { awardXp, getXpEventMessage } from "@/lib/gamification";
 import { useToast } from "@/components/ui/toast-provider";
+import { getCardForWord, getMasteryLevel, getMasteryStatus } from "@/lib/spaced-repetition";
 
 export default function WordDetailPage() {
   const params = useParams();
@@ -33,6 +34,8 @@ export default function WordDetailPage() {
   const [word, setWord] = useState<Word | null>(null);
   const [loading, setLoading] = useState(true);
   const [xpAwarded, setXpAwarded] = useState(false);
+  const [masteryLevel, setMasteryLevel] = useState(0);
+  const [masteryStatus, setMasteryStatus] = useState<"new" | "learning" | "reviewing" | "mastered">("new");
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -47,10 +50,21 @@ export default function WordDetailPage() {
       .from("words")
       .select("*")
       .eq("id", Number(params.id))
-      .single();
+      .single<Word>();
 
     if (data) {
       setWord(data);
+
+      // Load SM-2 mastery data for this word
+      const card = getCardForWord(data.id);
+      if (card) {
+        setMasteryLevel(getMasteryLevel(card));
+        setMasteryStatus(getMasteryStatus(card));
+      } else {
+        setMasteryLevel(0);
+        setMasteryStatus("new");
+      }
+
       // Award XP for viewing a word (only once per word view)
       if (!xpAwarded) {
         const today = new Date().toISOString().slice(0, 10);
@@ -175,13 +189,31 @@ export default function WordDetailPage() {
             className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-secondary p-[1px]"
           >
             <div className="bg-card rounded-[23px] p-6 space-y-4">
-              {/* Level badge */}
+              {/* Level badge + Mastery badge */}
               <FadeIn>
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${level.gradient}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${level.dot}`} />
                     {level.label}
                   </span>
+                  {masteryStatus === "mastered" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-600">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+                      Dikuasai
+                    </span>
+                  )}
+                  {masteryStatus === "reviewing" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-300" />
+                      Reviewing
+                    </span>
+                  )}
+                  {masteryStatus === "learning" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+                      Learning
+                    </span>
+                  )}
                 </div>
               </FadeIn>
 
@@ -222,6 +254,41 @@ export default function WordDetailPage() {
                     <span className="font-bold text-card-foreground">{word.cara_baca}</span>
                     <PronunciationWave text={word.cara_baca.replace(/-/g, " ")} size="sm" />
                   </div>
+                </motion.div>
+              )}
+
+              {/* Mastery Progress */}
+              {masteryLevel > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.4 }}
+                  className="space-y-1.5"
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-medium">Progress Mastery</span>
+                    <span className="font-bold text-foreground">{masteryLevel}%</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${masteryLevel}%` }}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      className={`h-full rounded-full ${
+                        masteryStatus === "mastered"
+                          ? "bg-gradient-to-r from-emerald-500 to-green-500"
+                          : masteryStatus === "reviewing"
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-500"
+                          : "bg-gradient-to-r from-amber-500 to-orange-500"
+                      }`}
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    {masteryStatus === "mastered" && "Kata ini sudah dikuasai! 🏆"}
+                    {masteryStatus === "reviewing" && "Terus review untuk meningkatkan retensi"}
+                    {masteryStatus === "learning" && "Kata ini sedang dipelajari"}
+                    {masteryStatus === "new" && "Belum ada data review"}
+                  </p>
                 </motion.div>
               )}
             </div>

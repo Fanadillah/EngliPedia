@@ -29,6 +29,7 @@ import { motion } from "motion/react";
 import { loadState, checkStreak } from "@/lib/gamification";
 import { getDailyLearningTasks, getDailyGoal, getTodayProgress, getDailyTasks, type DailyTaskItem } from "@/lib/learning";
 import { useToast } from "@/components/ui/toast-provider";
+import { getCardForWord, getMasteryLevel, getMasteryStatus, getMasteredCount } from "@/lib/spaced-repetition";
 
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 
@@ -60,12 +61,16 @@ export default function Home() {
   const [quote] = useState(
     () => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
   );
+  const [wotdMasteryLevel, setWotdMasteryLevel] = useState(0);
+  const [wotdMasteryStatus, setWotdMasteryStatus] = useState<"new" | "learning" | "reviewing" | "mastered">("new");
+  const [realMasteredCount, setRealMasteredCount] = useState(0);
   const { showToast } = useToast();
 
   useEffect(() => {
     setMounted(true);
     loadWords();
     loadDailyLearning();
+    setRealMasteredCount(getMasteredCount());
     
     // Check streak on visit
     const prevState = loadState(); // Baca state SEBELUM update
@@ -101,7 +106,17 @@ export default function Home() {
 
     if (wotd && wotd.length > 0) {
       const dayIndex = new Date().getDate() % wotd.length;
-      setWordOfDay(wotd[dayIndex]);
+      const wotdWord = wotd[dayIndex] as Word;
+      setWordOfDay(wotdWord);
+      // Compute WOTD mastery
+      const card = getCardForWord(wotdWord.id);
+      if (card) {
+        setWotdMasteryLevel(getMasteryLevel(card));
+        setWotdMasteryStatus(getMasteryStatus(card));
+      } else {
+        setWotdMasteryLevel(0);
+        setWotdMasteryStatus("new");
+      }
     }
 
     // Random words for discovery
@@ -277,14 +292,21 @@ export default function Home() {
                       <Zap className="w-3 h-3 mr-1" />
                       Kata Hari Ini
                     </Badge>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => speak(wordOfDay.word)}
-                      className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                    >
-                      <Volume2 className="w-4 h-4 text-primary" />
-                    </motion.button>
+                    <div className="flex items-center gap-2">
+                      {wotdMasteryStatus === "mastered" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                          🏆 Dikuasai
+                        </span>
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => speak(wordOfDay.word)}
+                        className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                      >
+                        <Volume2 className="w-4 h-4 text-primary" />
+                      </motion.button>
+                    </div>
                   </div>
                 </FadeIn>
 
@@ -371,7 +393,7 @@ export default function Home() {
                 className="bg-card rounded-2xl border border-border p-3.5 text-center"
               >
                 <ProgressRing
-                  value={Math.min(gamification.masteredWords, 500)}
+                  value={Math.min(realMasteredCount, 500)}
                   maxValue={500}
                   size={56}
                   strokeWidth={4}
@@ -380,7 +402,7 @@ export default function Home() {
                 >
                   <Trophy className="w-4 h-4 text-emerald-500" />
                 </ProgressRing>
-                <p className="text-sm font-bold text-emerald-600 mt-1.5">{gamification.masteredWords}</p>
+                <p className="text-sm font-bold text-emerald-600 mt-1.5">{realMasteredCount}</p>
                 <p className="text-[9px] text-emerald-400 font-medium leading-tight">Kata<br/>Dikuasai</p>
               </motion.div>
             </StaggerItem>
