@@ -9,6 +9,9 @@ import {
   AlertTriangle,
   ChevronRight,
   Sparkles,
+  Mic,
+  Pen,
+  BookOpenCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -35,6 +38,33 @@ const practiceModes = [
     color: "from-blue-500 to-indigo-600",
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
     iconColor: "text-blue-500",
+  },
+  {
+    href: "/speaking",
+    icon: Mic,
+    title: "Speaking",
+    description: "Latihan pengucapan kata Inggris",
+    color: "from-emerald-500 to-teal-600",
+    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
+    iconColor: "text-emerald-500",
+  },
+  {
+    href: "/writing",
+    icon: Pen,
+    title: "Writing",
+    description: "Ketik kata Inggris dari arti Indonesia",
+    color: "from-blue-500 to-indigo-500",
+    bgColor: "bg-blue-50 dark:bg-blue-950/30",
+    iconColor: "text-blue-500",
+  },
+  {
+    href: "/grammar",
+    icon: BookOpenCheck,
+    title: "Grammar",
+    description: "Latihan grammar dari course yang dipelajari",
+    color: "from-amber-500 to-orange-500",
+    bgColor: "bg-amber-50 dark:bg-amber-950/30",
+    iconColor: "text-amber-500",
   },
 ];
 

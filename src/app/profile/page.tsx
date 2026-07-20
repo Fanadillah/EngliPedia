@@ -14,6 +14,9 @@ import type { GamificationState } from "@/lib/gamification";
 import { motion } from "motion/react";
 import { getDailyGoal, updateDailyGoal } from "@/lib/learning";
 
+const AUDIO_SPEED_KEY = "engli-audio-speed";
+const DAILY_REMINDER_KEY = "engli-daily-reminder";
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
@@ -24,6 +27,8 @@ export default function ProfilePage() {
   const [updating, setUpdating] = useState(false);
   const [dailyGoal, setDailyGoal] = useState({ xp_goal: 20, words_goal: 5, lessons_goal: 1 });
   const [saving, setSaving] = useState(false);
+  const [dailyReminder, setDailyReminder] = useState(false);
+  const [audioSpeed, setAudioSpeed] = useState(1);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -42,6 +47,14 @@ export default function ProfilePage() {
         }
       });
     }
+
+    // Load saved settings
+    try {
+      const savedReminder = localStorage.getItem(DAILY_REMINDER_KEY);
+      if (savedReminder) setDailyReminder(JSON.parse(savedReminder));
+      const savedSpeed = localStorage.getItem(AUDIO_SPEED_KEY);
+      if (savedSpeed) setAudioSpeed(JSON.parse(savedSpeed));
+    } catch {}
 
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
@@ -372,9 +385,23 @@ export default function ProfilePage() {
                 </div>
                 <span className="text-sm font-medium">Pengingat Harian</span>
               </div>
-              <div className="w-10 h-6 rounded-full bg-muted-foreground/20 relative cursor-pointer">
-                <div className="w-5 h-5 rounded-full bg-card shadow-sm absolute top-0.5 left-0.5" />
-              </div>
+              <button
+                onClick={() => {
+                  const newVal = !dailyReminder;
+                  setDailyReminder(newVal);
+                  localStorage.setItem(DAILY_REMINDER_KEY, JSON.stringify(newVal));
+                  if (newVal && "Notification" in window) {
+                    Notification.requestPermission();
+                  }
+                }}
+                className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${
+                  dailyReminder ? "bg-primary" : "bg-muted-foreground/20"
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-card shadow-sm absolute top-0.5 transition-all ${
+                  dailyReminder ? "left-4.5" : "left-0.5"
+                }`} />
+              </button>
             </div>
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
@@ -383,8 +410,28 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <span className="text-sm font-medium">Kecepatan Audio</span>
-                  <p className="text-[11px] text-muted-foreground">Normal (1x)</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {audioSpeed === 0.75 ? "Lambat (0.75x)" : audioSpeed === 1 ? "Normal (1x)" : audioSpeed === 1.25 ? "Cepat (1.25x)" : "Sangat Cepat (1.5x)"}
+                  </p>
                 </div>
+              </div>
+              <div className="flex gap-1">
+                {[0.75, 1, 1.25, 1.5].map((speed) => (
+                  <button
+                    key={speed}
+                    onClick={() => {
+                      setAudioSpeed(speed);
+                      localStorage.setItem(AUDIO_SPEED_KEY, JSON.stringify(speed));
+                    }}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all ${
+                      audioSpeed === speed
+                        ? "bg-primary text-white"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {speed}x
+                  </button>
+                ))}
               </div>
             </div>
 
