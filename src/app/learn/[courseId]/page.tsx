@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Circle,
   ChevronRight,
+  ClipboardCheck,
   Play,
 } from "lucide-react";
 import Link from "next/link";
@@ -203,6 +204,22 @@ export default function CourseDetailPage() {
                     </Link>
                   ))}
                 </div>
+
+                {/* Unit Review — show when all lessons completed */}
+                {unit.completed_lessons === unit.total_lessons && unit.total_lessons > 0 && (
+                  <Link href={`/review/${unit.id}`}>
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 transition-colors border-t border-amber-200 dark:border-amber-800/30">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
+                        <ClipboardCheck className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Unit Review</p>
+                        <p className="text-xs text-amber-600/70 dark:text-amber-400/60">Uji pemahaman dari semua lesson</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-amber-500" />
+                    </div>
+                  </Link>
+                )}
               </div>
             </StaggerItem>
           ))}
