@@ -96,7 +96,6 @@ export default function LessonPage() {
 
   // Grammar state
   const [lessonContent, setLessonContent] = useState<LessonContent[]>([]);
-  const [grammarStep, setGrammarStep] = useState<"explanation" | "examples" | "practice">("explanation");
   const [grammarExplanationIndex, setGrammarExplanationIndex] = useState(0);
   const [grammarExampleIndex, setGrammarExampleIndex] = useState(0);
   const [grammarExerciseIndex, setGrammarExerciseIndex] = useState(0);
@@ -232,7 +231,6 @@ export default function LessonPage() {
   const handleStartLesson = () => {
     if (lessonType === "grammar") {
       setStep("grammar_explanation");
-      setGrammarStep("explanation");
       setGrammarExplanationIndex(0);
       setGrammarExampleIndex(0);
       setGrammarExerciseIndex(0);
@@ -409,7 +407,7 @@ export default function LessonPage() {
     if (currentIdx < explanations.length - 1) {
       setGrammarExplanationIndex(currentIdx + 1);
     } else {
-      setGrammarStep("examples");
+      setStep("grammar_examples");
       setGrammarExampleIndex(0);
     }
   };
@@ -418,7 +416,7 @@ export default function LessonPage() {
     if (currentIdx < examples.length - 1) {
       setGrammarExampleIndex(currentIdx + 1);
     } else {
-      setGrammarStep("practice");
+      setStep("grammar_practice");
       setGrammarExerciseIndex(0);
       setGrammarScore(0);
       setGrammarExerciseAnswered(false);
