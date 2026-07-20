@@ -18,6 +18,7 @@ import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui/motion-co
 import { motion } from "motion/react";
 import { loadState } from "@/lib/gamification";
 import { getTodayProgress, getDailyGoal, getMistakes } from "@/lib/learning";
+import { getMasteredCount, getTotalReviewWords } from "@/lib/spaced-repetition";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { useAuth } from "@/components/auth/auth-context";
 
@@ -32,6 +33,8 @@ export default function ProgressPage() {
   const [dailyGoal, setDailyGoal] = useState({ xp_goal: 20, words_goal: 5, lessons_goal: 1 });
   const [mistakesCount, setMistakesCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [actualMastered, setActualMastered] = useState(0);
+  const [totalReviewed, setTotalReviewed] = useState(0);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -42,6 +45,10 @@ export default function ProgressPage() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Load SM-2 mastery data (works for all users, not just logged in)
+      setActualMastered(getMasteredCount());
+      setTotalReviewed(getTotalReviewWords());
+
       if (user) {
         const [progress, goal, mistakes] = await Promise.all([
           getTodayProgress(),
@@ -155,7 +162,7 @@ export default function ProgressPage() {
           <StaggerItem>
             <div className="rounded-2xl bg-white dark:bg-gray-900 border border-violet-100 dark:border-violet-900/30 p-4 text-center">
               <ProgressRing
-                value={Math.min(gamification.masteredWords, 500)}
+                value={Math.min(actualMastered, 500)}
                 maxValue={500}
                 size={56}
                 strokeWidth={4}
@@ -164,7 +171,7 @@ export default function ProgressPage() {
               >
                 <Trophy className="w-4 h-4 text-emerald-500" />
               </ProgressRing>
-              <p className="text-xl font-bold text-emerald-600 mt-2">{gamification.masteredWords}</p>
+              <p className="text-xl font-bold text-emerald-600 mt-2">{actualMastered}</p>
               <p className="text-xs text-muted-foreground">Kata Dikuasai</p>
             </div>
           </StaggerItem>

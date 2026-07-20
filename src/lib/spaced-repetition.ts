@@ -299,3 +299,58 @@ export function mergeCloudCards(cloudCards: CardReview[]): CardReview[] {
   saveAllCards(merged);
   return merged;
 }
+
+// ─── Mastery System ───────────────────────────────────────────────────
+
+/** Mastery criteria: a word is "mastered" when the user has proven long-term retention */
+const MASTERY_MIN_REPETITIONS = 5;
+const MASTERY_MIN_EF = 2.0;
+const MASTERY_MIN_INTERVAL = 21; // days
+
+/** Check if a single card meets mastery criteria */
+export function isMastered(card: CardReview): boolean {
+  return (
+    card.repetitions >= MASTERY_MIN_REPETITIONS &&
+    card.easinessFactor >= MASTERY_MIN_EF &&
+    card.interval >= MASTERY_MIN_INTERVAL
+  );
+}
+
+/** Get the mastery level of a card (0-100) based on SM-2 progress */
+export function getMasteryLevel(card: CardReview): number {
+  const repScore = Math.min(1, card.repetitions / MASTERY_MIN_REPETITIONS);
+  const efScore = Math.min(1, (card.easinessFactor - 1.3) / (MASTERY_MIN_EF - 1.3));
+  const intervalScore = Math.min(1, card.interval / MASTERY_MIN_INTERVAL);
+  return Math.round((repScore * 0.4 + efScore * 0.3 + intervalScore * 0.3) * 100);
+}
+
+/** Get mastery status string for display */
+export function getMasteryStatus(card: CardReview): "new" | "learning" | "reviewing" | "mastered" {
+  if (isMastered(card)) return "mastered";
+  if (card.repetitions >= 3) return "reviewing";
+  if (card.repetitions >= 1) return "learning";
+  return "new";
+}
+
+/** Get count of mastered words */
+export function getMasteredCount(): number {
+  const cards = loadAllCards();
+  return cards.filter(isMastered).length;
+}
+
+/** Get IDs of all mastered words */
+export function getMasteredWordIds(): number[] {
+  const cards = loadAllCards();
+  return cards.filter(isMastered).map((c) => c.wordId);
+}
+
+/** Get total words in SR system */
+export function getTotalReviewWords(): number {
+  return loadAllCards().length;
+}
+
+/** Get card for a specific word */
+export function getCardForWord(wordId: number): CardReview | null {
+  const cards = loadAllCards();
+  return cards.find((c) => c.wordId === wordId) || null;
+}

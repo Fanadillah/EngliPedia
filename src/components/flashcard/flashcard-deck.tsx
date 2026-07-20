@@ -6,7 +6,7 @@ import { Volume2, ChevronLeft, ChevronRight, RotateCcw, Sparkles, Check, X, Brai
 import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
 import { awardXp, getXpEventMessage } from "@/lib/gamification";
-import { recordReview, getDueCount, getDueWordIds, mergeCloudCards } from "@/lib/spaced-repetition";
+import { recordReview, getDueCount, getDueWordIds, mergeCloudCards, getCardForWord, isMastered, getMasteryLevel, getMasteryStatus } from "@/lib/spaced-repetition";
 import { loadSpacedRepetitionFromCloud } from "@/lib/cloud-sync";
 import { useAuth } from "@/components/auth/auth-context";
 import { useToast } from "@/components/ui/toast-provider";
@@ -154,6 +154,10 @@ export function FlashcardDeck() {
 
       const word = words[currentIndex];
 
+      // Check mastery BEFORE review
+      const cardBefore = getCardForWord(word.id);
+      const wasMastered = cardBefore ? isMastered(cardBefore) : false;
+
       // Save to spaced repetition system
       recordReview(word.id, difficulty);
 
@@ -162,10 +166,17 @@ export function FlashcardDeck() {
         awardXp("learn_flashcard"); // +10 XP
       }
 
-      // Mastery: trigger once when user reaches 2+ easy reviews in a session
-      if (difficulty === "easy" && results.filter((r) => r.difficulty === "easy").length === 1 && !masteryAwardedRef.current) {
+      // Mastery: check if this review JUST made the word mastered (SM-2 criteria)
+      const cardAfter = getCardForWord(word.id);
+      const isNowMastered = cardAfter ? isMastered(cardAfter) : false;
+
+      if (isNowMastered && !wasMastered && !masteryAwardedRef.current) {
         masteryAwardedRef.current = true;
         awardXp("master_word"); // +25 XP
+        showToast({
+          type: "success",
+          message: `Kata "${word.word}" berhasil dikuasai!`,
+        });
       }
 
       const newResult: ReviewResult = { word, difficulty };
@@ -230,6 +241,9 @@ export function FlashcardDeck() {
   );
 
   const currentWord = words[currentIndex];
+  const currentCard = currentWord ? getCardForWord(currentWord.id) : null;
+  const currentMasteryLevel = currentCard ? getMasteryLevel(currentCard) : 0;
+  const currentMasteryStatus = currentCard ? getMasteryStatus(currentCard) : "new";
 
   // Loading state
   if (loading) {
@@ -531,6 +545,17 @@ export function FlashcardDeck() {
                       ? "Menengah"
                       : "Lanjut"}
                   </span>
+                  {currentMasteryStatus !== "new" && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      currentMasteryStatus === "mastered"
+                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                        : currentMasteryStatus === "reviewing"
+                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                        : "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                    }`}>
+                      {currentMasteryStatus === "mastered" ? "🏆 Dikuasai" : currentMasteryStatus === "reviewing" ? "📖 Reviewing" : "📝 Learning"}
+                    </span>
+                  )}
                 </div>
 
                 {/* Word */}
@@ -540,6 +565,23 @@ export function FlashcardDeck() {
                   </h2>
                   {currentWord.ipa && (
                     <p className="text-sm font-mono text-muted-foreground mt-2">{currentWord.ipa}</p>
+                  )}
+                  {currentCard && currentMasteryLevel > 0 && (
+                    <div className="mt-3 max-w-[200px] mx-auto">
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            currentMasteryStatus === "mastered"
+                              ? "bg-gradient-to-r from-emerald-400 to-green-500"
+                              : "bg-gradient-to-r from-blue-400 to-indigo-500"
+                          }`}
+                          style={{ width: `${currentMasteryLevel}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1 text-center">
+                        Mastery: {currentMasteryLevel}%
+                      </p>
+                    </div>
                   )}
                 </div>
 
