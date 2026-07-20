@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui/motion-components";
 import { motion, AnimatePresence } from "motion/react";
 import { createClient } from "@/utils/supabase/client";
@@ -107,12 +107,12 @@ export default function ListeningPage() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   // ─── Load Words ─────────────────────────────────────────────────────
-  const loadWords = async (mode: PracticeMode) => {
-    setLoading(true);
+  const loadWords = async (mode: PracticeMode): Promise<Word[]> => {
     try {
       const supabase = createClient();
       let query = supabase.from("words").select("*");
@@ -123,19 +123,17 @@ export default function ListeningPage() {
         query = query.lte("frequency", 4);
       }
 
-      const { data } = await query.order("random()").limit(20);
+      const { data } = await query.order("id", { ascending: false }).limit(20);
       const loadedWords = (data || []) as Word[];
 
       if (mode === "sentence_mcq" || mode === "sentence_blank") {
         const sentenceWords = loadedWords.filter((w) => w.example && w.example_id);
-        setWords(sentenceWords.length >= 4 ? sentenceWords : loadedWords);
-      } else {
-        setWords(loadedWords);
+        return sentenceWords.length >= 4 ? sentenceWords : loadedWords;
       }
+      return loadedWords;
     } catch (error) {
       console.error("Failed to load words:", error);
-    } finally {
-      setLoading(false);
+      return [];
     }
   };
 
@@ -205,32 +203,39 @@ export default function ListeningPage() {
   const startPractice = async (mode: PracticeMode) => {
     setSelectedMode(mode);
     setLoading(true);
-    await loadWords(mode);
-    setLoading(false);
-  };
+    setError(null);
 
-  useEffect(() => {
-    if (words.length > 0 && selectedMode && !loading) {
-      const qs = generateQuestions(selectedMode, words);
-      if (qs.length === 0) {
-        setPhase("select");
-        setSelectedMode(null);
-        return;
-      }
-      setQuestions(qs);
-      setQIndex(0);
-      setScore(0);
-      setInput("");
-      setCorrect(null);
-      setSelectedOption(null);
-      setSpeed(1);
-      setPhase("practice");
+    const loadedWords = await loadWords(mode);
 
-      setTimeout(() => {
-        playAudio(qs[0].audio);
-      }, 500);
+    if (loadedWords.length === 0) {
+      setLoading(false);
+      setError("Tidak ada kata yang tersedia. Pastikan kata sudah ada di database.");
+      return;
     }
-  }, [words, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const qs = generateQuestions(mode, loadedWords);
+
+    if (qs.length === 0) {
+      setLoading(false);
+      setError("Tidak bisa membuat soal. Coba mode lain atau tingkat kesulitan berbeda.");
+      return;
+    }
+
+    setWords(loadedWords);
+    setQuestions(qs);
+    setQIndex(0);
+    setScore(0);
+    setInput("");
+    setCorrect(null);
+    setSelectedOption(null);
+    setSpeed(1);
+    setLoading(false);
+    setPhase("practice");
+
+    setTimeout(() => {
+      playAudio(qs[0].audio);
+    }, 500);
+  };
 
   // ─── Audio ──────────────────────────────────────────────────────────
   const playAudio = (text: string, rate?: number) => {
@@ -276,6 +281,7 @@ export default function ListeningPage() {
   // ─── Reset ──────────────────────────────────────────────────────────
   const handleBack = () => {
     speechSynthesis.cancel();
+    setError(null);
     if (phase === "practice" && selectedMode) {
       setPhase("select");
       setSelectedMode(null);
@@ -354,6 +360,12 @@ export default function ListeningPage() {
               </StaggerItem>
             ))}
           </StaggerContainer>
+
+          {error && (
+            <div className="mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-center">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
 
           {loading && (
             <div className="text-center py-8">
