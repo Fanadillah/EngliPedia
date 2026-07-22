@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
 import { awardXp, getXpEventMessage } from "@/lib/gamification";
+import { addMistake } from "@/lib/learning";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
 import { useRouter } from "next/navigation";
@@ -232,7 +233,8 @@ export default function QuizPage() {
       });
     } else {
       setAnswerState("incorrect");
-      setStreak(0); // Reset streak on wrong answer
+      setStreak(0);
+      addMistake(currentQuestion.word.id, "quiz");
     }
 
     // Save result

@@ -6,8 +6,10 @@ import { Volume2, ChevronLeft, ChevronRight, RotateCcw, Sparkles, Check, X, Brai
 import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
 import { awardXp, getXpEventMessage } from "@/lib/gamification";
+import { addMistake } from "@/lib/learning";
 import { recordReview, getDueCount, getDueWordIds, mergeCloudCards, getCardForWord, isMastered, getMasteryLevel, getMasteryStatus } from "@/lib/spaced-repetition";
 import { loadSpacedRepetitionFromCloud } from "@/lib/cloud-sync";
+import { getMistakes } from "@/lib/learning";
 import { useAuth } from "@/components/auth/auth-context";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
@@ -43,7 +45,7 @@ const XP_REWARDS: Record<ReviewDifficulty, number> = {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
-export function FlashcardDeck() {
+export function FlashcardDeck({ mode = "normal" }: { mode?: "normal" | "mistakes" }) {
   const [words, setWords] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -63,60 +65,73 @@ export function FlashcardDeck() {
   // Fetch words on mount
   useEffect(() => {
     loadWords();
-  }, []);
+  }, [mode]);
 
   const loadWords = async () => {
     setLoading(true);
-
-    // Pull spaced repetition data from cloud first (if logged in)
-    if (user) {
-      try {
-        const cloudCards = await loadSpacedRepetitionFromCloud();
-        if (cloudCards.length > 0) {
-          mergeCloudCards(cloudCards);
-        }
-      } catch {
-        // Silent fail — use local data
-      }
-    }
-
-    const dueIds = getDueWordIds();
-    setDueCount(getDueCount());
     const supabase = createClient();
 
     let sessionWords: Word[] = [];
 
-    // 1. Load due words first (prioritize for review)
-    if (dueIds.length > 0) {
-      const { data: dueData } = await supabase
-        .from("words")
-        .select("id, word, ipa, pos, meaning_id, definition, example, example_id, frequency, cara_baca, level")
-        .in("id", dueIds)
-        .limit(SESSION_SIZE);
-      if (dueData) sessionWords = dueData as Word[];
-    }
-
-    // 2. Fill remaining slots with new words
-    const remaining = SESSION_SIZE - sessionWords.length;
-    if (remaining > 0) {
-      const existingIds = sessionWords.map((w) => w.id);
-      let qb = supabase
-        .from("words")
-        .select("id, word, ipa, pos, meaning_id, definition, example, example_id, frequency, cara_baca, level")
-        .not("meaning_id", "eq", "")
-        .not("ipa", "eq", "")
-        .gte("frequency", 2);
-
-      // Exclude already loaded words
-      if (existingIds.length > 0) {
-        qb = qb.not("id", "in", `(${existingIds.join(",")})`);
+    if (mode === "mistakes" && user) {
+      // Load words from user_mistakes
+      const mistakes = await getMistakes();
+      if (mistakes.length > 0) {
+        const mistakeIds = mistakes.map((m) => m.word_id);
+        const { data } = await supabase
+          .from("words")
+          .select("id, word, ipa, pos, meaning_id, definition, example, example_id, frequency, cara_baca, level, conjugations")
+          .in("id", mistakeIds)
+          .limit(SESSION_SIZE);
+        if (data) sessionWords = data as Word[];
+      }
+    } else {
+      // Normal mode: pull spaced repetition data from cloud first
+      if (user) {
+        try {
+          const cloudCards = await loadSpacedRepetitionFromCloud();
+          if (cloudCards.length > 0) {
+            mergeCloudCards(cloudCards);
+          }
+        } catch {
+          // Silent fail
+        }
       }
 
-      const { data: newData } = await qb.order("id", { ascending: false }).limit(200);
+      const dueIds = getDueWordIds();
+      setDueCount(getDueCount());
 
-      if (newData && newData.length > 0) {
-        const shuffled = [...newData].sort(() => Math.random() - 0.5);
-        sessionWords = [...sessionWords, ...shuffled.slice(0, remaining)];
+      // 1. Load due words first
+      if (dueIds.length > 0) {
+        const { data: dueData } = await supabase
+          .from("words")
+          .select("id, word, ipa, pos, meaning_id, definition, example, example_id, frequency, cara_baca, level, conjugations")
+          .in("id", dueIds)
+          .limit(SESSION_SIZE);
+        if (dueData) sessionWords = dueData as Word[];
+      }
+
+      // 2. Fill remaining slots with new words
+      const remaining = SESSION_SIZE - sessionWords.length;
+      if (remaining > 0) {
+        const existingIds = sessionWords.map((w) => w.id);
+        let qb = supabase
+          .from("words")
+          .select("id, word, ipa, pos, meaning_id, definition, example, example_id, frequency, cara_baca, level, conjugations")
+          .not("meaning_id", "eq", "")
+          .not("ipa", "eq", "")
+          .gte("frequency", 2);
+
+        if (existingIds.length > 0) {
+          qb = qb.not("id", "in", `(${existingIds.join(",")})`);
+        }
+
+        const { data: newData } = await qb.order("id", { ascending: false }).limit(200);
+
+        if (newData && newData.length > 0) {
+          const shuffled = [...newData].sort(() => Math.random() - 0.5);
+          sessionWords = [...sessionWords, ...shuffled.slice(0, remaining)];
+        }
       }
     }
 
@@ -160,6 +175,11 @@ export function FlashcardDeck() {
 
       // Save to spaced repetition system
       recordReview(word.id, difficulty);
+
+      // Track mistakes for again/hard
+      if (difficulty === "again" || difficulty === "hard") {
+        addMistake(word.id, "flashcard");
+      }
 
       // Award XP only via proper gamification system
       if (difficulty === "easy") {
