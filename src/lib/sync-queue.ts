@@ -112,9 +112,17 @@ export async function drainQueue(): Promise<void> {
               row.user_id ? row : { ...row, user_id: user.id }
             );
           }
+          const conflictMap: Record<string, string> = {
+            user_words: "user_id,word_id",
+            user_lesson_progress: "user_id,lesson_id",
+            user_unit_progress: "user_id,unit_id",
+            user_course_progress: "user_id,course_id",
+            user_mistakes: "user_id,word_id",
+          };
+          const onConflict = conflictMap[item.table] || "id";
           const { error } = await supabase
             .from(item.table)
-            .upsert(payload, { onConflict: item.table === "user_words" ? "user_id,word_id" : "id" });
+            .upsert(payload, { onConflict });
           if (error) throw error;
           break;
         }

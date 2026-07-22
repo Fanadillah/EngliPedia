@@ -231,7 +231,7 @@ export async function updateLessonProgress(
   const { data: { user } } = await client().auth.getUser();
   if (!user) return;
 
-  await client()
+  const result = await client()
     .from("user_lesson_progress")
     .upsert({
       user_id: user.id,
@@ -241,6 +241,139 @@ export async function updateLessonProgress(
       quiz_score: quizScore,
       completed_at: status === "completed" ? new Date().toISOString() : null,
     }, { onConflict: "user_id,lesson_id" });
+
+  if (result.error) {
+    const { enqueue } = await import("@/lib/sync-queue");
+    enqueue({
+      table: "user_lesson_progress",
+      operation: "upsert",
+      payload: {
+        user_id: user.id,
+        lesson_id: lessonId,
+        status,
+        words_learned: wordsLearned,
+        quiz_score: quizScore,
+        completed_at: status === "completed" ? new Date().toISOString() : null,
+      },
+      timestamp: Date.now(),
+    });
+  }
+
+  if (status === "completed") {
+    await checkUnitCompletion(lessonId);
+  }
+}
+
+export async function updateUnitProgress(
+  unitId: string,
+  isCompleted: boolean
+): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  const result = await client()
+    .from("user_unit_progress")
+    .upsert({
+      user_id: user.id,
+      unit_id: unitId,
+      is_completed: isCompleted,
+      completed_at: isCompleted ? new Date().toISOString() : null,
+    }, { onConflict: "user_id,unit_id" });
+
+  if (result.error) {
+    const { enqueue } = await import("@/lib/sync-queue");
+    enqueue({
+      table: "user_unit_progress",
+      operation: "upsert",
+      payload: {
+        user_id: user.id,
+        unit_id: unitId,
+        is_completed: isCompleted,
+        completed_at: isCompleted ? new Date().toISOString() : null,
+      },
+      timestamp: Date.now(),
+    });
+  }
+
+  if (isCompleted) {
+    await checkCourseCompletion(unitId);
+  }
+}
+
+async function checkUnitCompletion(lessonId: string): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  const { data: lesson } = await client()
+    .from("lessons")
+    .select("unit_id")
+    .eq("id", lessonId)
+    .single();
+
+  if (!lesson) return;
+
+  const unitId = (lesson as any).unit_id;
+
+  const { count: totalLessons } = await client()
+    .from("lessons")
+    .select("id", { count: "exact", head: true })
+    .eq("unit_id", unitId);
+
+  const { count: completedLessons } = await client()
+    .from("user_lesson_progress")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .in("lesson_id",
+      ((await client()
+        .from("lessons")
+        .select("id")
+        .eq("unit_id", unitId)) as any).data?.map((l: any) => l.id) || []
+    );
+
+  if ((totalLessons || 0) > 0 && (completedLessons || 0) >= (totalLessons || 0)) {
+    await updateUnitProgress(unitId, true);
+  }
+}
+
+async function checkCourseCompletion(unitId: string): Promise<void> {
+  const { data: { user } } = await client().auth.getUser();
+  if (!user) return;
+
+  const { data: unit } = await client()
+    .from("units")
+    .select("course_id")
+    .eq("id", unitId)
+    .single();
+
+  if (!unit) return;
+
+  const courseId = (unit as any).course_id;
+
+  const { count: totalUnits } = await client()
+    .from("units")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", courseId);
+
+  const { count: completedUnits } = await client()
+    .from("user_unit_progress")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("is_completed", true)
+    .in("unit_id",
+      ((await client()
+        .from("units")
+        .select("id")
+        .eq("course_id", courseId)) as any).data?.map((u: any) => u.id) || []
+    );
+
+  if ((totalUnits || 0) > 0 && (completedUnits || 0) >= (totalUnits || 0)) {
+    await client()
+      .from("user_course_progress")
+      .update({ is_active: false })
+      .eq("user_id", user.id)
+      .eq("course_id", courseId);
+  }
 }
 
 // ─── Get next lesson for a course ─────────────────────────────────────

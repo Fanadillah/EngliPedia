@@ -11,7 +11,7 @@ import {
   syncSpacedRepetitionToCloud,
 } from "@/lib/cloud-sync";
 import { getSavedIds } from "@/lib/saved-words";
-import { startDrain } from "@/lib/sync-queue";
+import { startDrain, drainQueue } from "@/lib/sync-queue";
 
 interface AuthState {
   user: User | null;
@@ -59,6 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const merged = await syncSpacedRepetitionToCloud(localCards);
       // syncSpacedRepetitionToCloud already merged — save directly
       setCards(merged);
+
+      // 4. Drain offline queue
+      await drainQueue();
     } catch (err) {
       console.error("Sync error:", err);
     } finally {
