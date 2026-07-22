@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { createClient } from "@/utils/supabase/client";
-import { BookOpen, MessageSquareQuote, Link2, Volume2, Copy, Check } from "lucide-react";
+import { BookOpen, MessageSquareQuote, Link2, Volume2, Copy, Check, Clock, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import type { Word } from "@/types/word";
 
@@ -92,6 +92,107 @@ export function WordTabs({ word, speak, level }: WordTabsProps) {
             <div className="border-t border-border/50 pt-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Definisi (English)</p>
               <p className="text-sm text-muted-foreground leading-relaxed">{word.definition}</p>
+            </div>
+          )}
+
+          {/* Conjugations */}
+          {word.conjugations && (
+            <div className="border-t border-border/50 pt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Conjugations
+              </p>
+              <div className="space-y-3">
+                {/* Past Tense */}
+                {word.conjugations.past && (() => {
+                  const p = word.conjugations.past;
+                  return (
+                    <div className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl p-3.5 border border-blue-200/50 dark:border-blue-800/30 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded">Past</span>
+                        <span className="font-bold text-card-foreground text-sm">{p.word}</span>
+                        <button onClick={() => speak(p.word)} className="text-blue-500 hover:text-blue-700 transition-colors">
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                        {p.ipa && <span className="text-[11px] text-muted-foreground font-mono">{p.ipa}</span>}
+                      </div>
+                      {p.cara_baca && (
+                        <p className="text-[11px] text-muted-foreground ml-14">
+                          <span className="font-medium">Cara baca:</span> {p.cara_baca}
+                        </p>
+                      )}
+                      {p.example && (
+                        <div className="ml-14 space-y-1">
+                          <p className="text-xs text-card-foreground/80 italic">&ldquo;{p.example}&rdquo;</p>
+                          {p.example_id && (
+                            <p className="text-[11px] text-muted-foreground">{p.example_id}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Present Participle (-ing) */}
+                {word.conjugations.present_participle_info && (() => {
+                  const pi = word.conjugations.present_participle_info!;
+                  return (
+                    <div className="bg-gradient-to-r from-emerald-500/5 to-teal-500/5 rounded-xl p-3.5 border border-emerald-200/50 dark:border-emerald-800/30 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded">-ing</span>
+                        <span className="font-bold text-card-foreground text-sm">{pi.word}</span>
+                        <button onClick={() => speak(pi.word)} className="text-emerald-500 hover:text-emerald-700 transition-colors">
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                        {pi.ipa && <span className="text-[11px] text-muted-foreground font-mono">{pi.ipa}</span>}
+                      </div>
+                      {pi.cara_baca && (
+                        <p className="text-[11px] text-muted-foreground ml-14">
+                          <span className="font-medium">Cara baca:</span> {pi.cara_baca}
+                        </p>
+                      )}
+                      {pi.example && (
+                        <div className="ml-14 space-y-1">
+                          <p className="text-xs text-card-foreground/80 italic">&ldquo;{pi.example}&rdquo;</p>
+                          {pi.example_id && (
+                            <p className="text-[11px] text-muted-foreground">{pi.example_id}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Third Person (-s) */}
+                {word.conjugations.third_person_info && (() => {
+                  const si = word.conjugations.third_person_info!;
+                  return (
+                    <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 rounded-xl p-3.5 border border-amber-200/50 dark:border-amber-800/30 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">-s</span>
+                        <span className="font-bold text-card-foreground text-sm">{si.word}</span>
+                        <button onClick={() => speak(si.word)} className="text-amber-500 hover:text-amber-700 transition-colors">
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                        {si.ipa && <span className="text-[11px] text-muted-foreground font-mono">{si.ipa}</span>}
+                      </div>
+                      {si.cara_baca && (
+                        <p className="text-[11px] text-muted-foreground ml-14">
+                          <span className="font-medium">Cara baca:</span> {si.cara_baca}
+                        </p>
+                      )}
+                      {si.example && (
+                        <div className="ml-14 space-y-1">
+                          <p className="text-xs text-card-foreground/80 italic">&ldquo;{si.example}&rdquo;</p>
+                          {si.example_id && (
+                            <p className="text-[11px] text-muted-foreground">{si.example_id}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
 

@@ -53,7 +53,7 @@ function convertWord(w, index) {
   const freq = w.zipf || 0;
   const level = freq >= 7 ? 'basic' : freq >= 5 ? 'intermediate' : 'advanced';
 
-  return {
+  const result = {
     id: index + 1,
     word: w.word,
     ipa: w.ipa_us || w.ipa_uk || '',
@@ -66,13 +66,31 @@ function convertWord(w, index) {
     cara_baca: w.cara_baca || '',
     level: level,
   };
+
+  if (w.conjugations) {
+    result.conjugations = w.conjugations;
+  }
+
+  return result;
 }
 
 async function importWords() {
+  console.log('🗑️  Deleting all existing words...');
+  const { error: deleteError } = await supabase
+    .from('words')
+    .delete()
+    .neq('id', 0);
+
+  if (deleteError) {
+    console.error('❌ Failed to delete existing words:', deleteError.message);
+    process.exit(1);
+  }
+  console.log('✅ Existing words deleted');
+
   const BATCH_SIZE = 500;
   const totalBatches = Math.ceil(words.length / BATCH_SIZE);
 
-  console.log(`🚀 Importing ${words.length} words in ${totalBatches} batches...`);
+  console.log(`\n🚀 Importing ${words.length} words in ${totalBatches} batches...`);
 
   let successCount = 0;
   let errorCount = 0;
@@ -85,7 +103,7 @@ async function importWords() {
 
     const { data, error } = await supabase
       .from('words')
-      .upsert(batch, { onConflict: 'id' });
+      .insert(batch);
 
     if (error) {
       console.log(`❌ ${error.message}`);

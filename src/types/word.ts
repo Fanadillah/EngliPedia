@@ -1,3 +1,20 @@
+export interface ConjugationDetail {
+  word: string;
+  ipa: string;
+  cara_baca: string;
+  example: string;
+  example_id: string;
+  meaning?: string;
+}
+
+export interface Conjugations {
+  past?: ConjugationDetail;
+  present_participle?: string;
+  present_participle_info?: ConjugationDetail;
+  third_person?: string;
+  third_person_info?: ConjugationDetail;
+}
+
 export interface Word {
   id: number;
   word: string;
@@ -10,6 +27,7 @@ export interface Word {
   frequency: number;
   cara_baca: string;
   level: "basic" | "intermediate" | "advanced";
+  conjugations?: Conjugations;
   created_at: string;
 }
 
