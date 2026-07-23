@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
     const raw = await fetchTranscript(videoId, { lang });
     const segments: TranscriptSegment[] = (raw as any[]).map((s) => ({
       text: s.text,
-      start: s.seconds || s.start || 0,
-      duration: s.duration || 0,
+      start: s.offset ?? s.seconds ?? s.start ?? 0,
+      duration: s.duration ?? 0,
     }));
 
     const sentences = segmentIntoSentences(segments);
