@@ -150,12 +150,20 @@ declare global {
 
 function useYouTubePlayer(videoId: string, onReady?: () => void) {
   const playerRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node !== null) setContainerEl(node);
+  }, []);
   const [ready, setReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const stateRef = useRef(-1);
+  const playerReadyRef = useRef(false);
+  const segmentRef = useRef<{start: number; end: number} | null>(null);
+  const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onAutoPauseRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!videoId || !containerRef.current) return;
+    if (!videoId || !containerEl) return;
 
     const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
@@ -165,7 +173,7 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
 
     const onAPIReady = () => {
       if (playerRef.current) return;
-      playerRef.current = new window.YT.Player(containerRef.current, {
+      playerRef.current = new window.YT.Player(containerEl, {
         videoId,
         height: "100%",
         width: "100%",
@@ -178,11 +186,26 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
         },
         events: {
           onReady: () => {
+            playerReadyRef.current = true;
             setReady(true);
             onReady?.();
           },
           onStateChange: (event: any) => {
             stateRef.current = event.data;
+            setIsPlaying(event.data === 1);
+            if (event.data === 1 && segmentRef.current) {
+              if (segmentTimerRef.current) {
+                clearTimeout(segmentTimerRef.current);
+              }
+              const now = playerRef.current?.getCurrentTime() ?? 0;
+              const end = segmentRef.current.end;
+              const remaining = Math.max((end - now) * 1000 + 100, 50);
+              segmentTimerRef.current = setTimeout(() => {
+                playerRef.current?.pauseVideo();
+                segmentRef.current = null;
+                onAutoPauseRef.current?.();
+              }, remaining);
+            }
           },
         },
       });
@@ -195,12 +218,15 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
     }
 
     return () => {
+      if (segmentTimerRef.current) {
+        clearTimeout(segmentTimerRef.current);
+      }
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch {}
         playerRef.current = null;
       }
     };
-  }, [videoId, onReady]);
+  }, [videoId, onReady, containerEl]);
 
   const seekTo = useCallback((time: number) => {
     playerRef.current?.seekTo(time, true);
@@ -218,7 +244,43 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
     return playerRef.current?.getCurrentTime() ?? 0;
   }, []);
 
-  return { playerRef, containerRef, ready, seekTo, play, pause, getCurrentTime, stateRef };
+  const playSegment = useCallback((start: number, end: number) => {
+    if (!playerReadyRef.current) return;
+    if (segmentTimerRef.current) {
+      clearTimeout(segmentTimerRef.current);
+      segmentTimerRef.current = null;
+    }
+    segmentRef.current = { start, end };
+    playerRef.current?.seekTo(start, true);
+    playerRef.current?.playVideo();
+
+    // Fallback: auto-pause by duration if onStateChange doesn't fire
+    segmentTimerRef.current = setTimeout(() => {
+      if (segmentRef.current) {
+        playerRef.current?.pauseVideo();
+        segmentRef.current = null;
+        onAutoPauseRef.current?.();
+      }
+    }, (end - start + 2) * 1000);
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    if (segmentTimerRef.current) {
+      clearTimeout(segmentTimerRef.current);
+      segmentTimerRef.current = null;
+    }
+    segmentRef.current = null;
+    playerRef.current?.pauseVideo();
+  }, []);
+
+  const setOnAutoPause = useCallback((fn: (() => void) | null) => {
+    onAutoPauseRef.current = fn;
+  }, []);
+
+  return {
+    playerRef, containerRef, ready, seekTo, play, pause, getCurrentTime,
+    stateRef, playerReadyRef, playSegment, stopPlayback, isPlaying, setOnAutoPause,
+  };
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────
@@ -241,9 +303,7 @@ export default function VideoLearningPage() {
   const [wordStatuses, setWordStatuses] = useState<WordStatus[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [submitted, setSubmitted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [showSubtitle, setShowSubtitle] = useState(true);
   const [sessionStats, setSessionStats] = useState<{
     totalSentences: number;
     completed: number;
@@ -255,8 +315,6 @@ export default function VideoLearningPage() {
   } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const playTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentSentence = sentences[currentIndex];
 
@@ -265,7 +323,7 @@ export default function VideoLearningPage() {
     // auto-start when ready
   }, []);
 
-  const { containerRef, ready: playerReady, seekTo, play, pause, getCurrentTime } = useYouTubePlayer(
+  const { containerRef, playSegment, stopPlayback, isPlaying, playerReadyRef, setOnAutoPause } = useYouTubePlayer(
     selectedVideo?.id || "",
     handlePlayerReady
   );
@@ -306,44 +364,6 @@ export default function VideoLearningPage() {
     loadTranscript(video.id);
   };
 
-  // ── Play Sentence Segment ───────────────────────────────────────────
-
-  const stopPlayback = useCallback(() => {
-    if (playIntervalRef.current) {
-      clearInterval(playIntervalRef.current);
-      playIntervalRef.current = null;
-    }
-    if (playTimeoutRef.current) {
-      clearTimeout(playTimeoutRef.current);
-      playTimeoutRef.current = null;
-    }
-    pause();
-    setIsPlaying(false);
-    inputRef.current?.focus();
-  }, [pause]);
-
-  const playSegment = useCallback((start: number, end: number) => {
-    if (!playerReady) return;
-    seekTo(start);
-    play();
-    setIsPlaying(true);
-
-    if (playIntervalRef.current) clearInterval(playIntervalRef.current);
-    if (playTimeoutRef.current) clearTimeout(playTimeoutRef.current);
-
-    const duration = end - start;
-    playTimeoutRef.current = setTimeout(() => {
-      stopPlayback();
-    }, (duration + 2) * 1000);
-
-    playIntervalRef.current = setInterval(() => {
-      const currentTime = getCurrentTime();
-      if (currentTime >= end) {
-        stopPlayback();
-      }
-    }, 200);
-  }, [playerReady, seekTo, play, getCurrentTime, stopPlayback]);
-
   // ── Start Session ───────────────────────────────────────────────────
 
   const startSession = () => {
@@ -355,11 +375,8 @@ export default function VideoLearningPage() {
     setAttempts(0);
     setSubmitted(false);
 
-    // Small delay to let player seek
-    setTimeout(() => {
-      const s = sentences[0];
-      if (s) playSegment(s.start, s.end);
-    }, 500);
+    const s = sentences[0];
+    if (s) playSegment(s.start, s.end);
   };
 
   // Re-play current sentence
@@ -428,7 +445,7 @@ export default function VideoLearningPage() {
     setAttempts(0);
 
     const next = sentences[nextIdx];
-    setTimeout(() => playSegment(next.start, next.end), 300);
+    playSegment(next.start, next.end);
   };
 
   // ── Skip Sentence ───────────────────────────────────────────────────
@@ -450,19 +467,17 @@ export default function VideoLearningPage() {
     setResults(updatedResults);
     setSubmitted(true);
 
-    setTimeout(() => {
-      if (currentIndex >= sentences.length - 1) {
-        finishSessionWith(updatedResults);
-      } else {
-        const nextIdx = currentIndex + 1;
-        setCurrentIndex(nextIdx);
-        setUserInput("");
-        setWordStatuses([]);
-        setSubmitted(false);
-        setAttempts(0);
-        setTimeout(() => playSegment(sentences[nextIdx].start, sentences[nextIdx].end), 300);
-      }
-    }, 800);
+    if (currentIndex >= sentences.length - 1) {
+      finishSessionWith(updatedResults);
+    } else {
+      const nextIdx = currentIndex + 1;
+      setCurrentIndex(nextIdx);
+      setUserInput("");
+      setWordStatuses([]);
+      setSubmitted(false);
+      setAttempts(0);
+      playSegment(sentences[nextIdx].start, sentences[nextIdx].end);
+    }
   };
 
   // ── Finish Session ──────────────────────────────────────────────────
@@ -502,6 +517,14 @@ export default function VideoLearningPage() {
       handleSubmit();
     }
   };
+
+  // Focus input when segment auto-pauses
+  useEffect(() => {
+    setOnAutoPause(() => {
+      inputRef.current?.focus();
+    });
+    return () => setOnAutoPause(null);
+  }, [setOnAutoPause]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -660,52 +683,30 @@ export default function VideoLearningPage() {
             )}
           </div>
 
-          {/* Subtitle */}
-          {showSubtitle && submitted && currentSentence && (
-            <motion.div
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-card rounded-xl border border-border p-3 text-center"
-            >
-              <p className="text-xs text-muted-foreground mb-1">Subtitle:</p>
-              <p className="text-sm font-medium text-card-foreground">
-                {currentSentence.text}
-              </p>
-            </motion.div>
-          )}
-
           {/* Typing input */}
           <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Ketik ulang yang kamu dengar:
               </p>
-              <button
-                onClick={() => setShowSubtitle((s) => !s)}
-                className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
-              >
-                {showSubtitle ? "Sembunyikan" : "Tampilkan"} subtitle
-              </button>
             </div>
 
             {/* Word status display */}
             {wordStatuses.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 p-3 bg-muted/50 rounded-xl min-h-[40px]">
+              <div className="flex flex-wrap gap-1.5 p-3 bg-muted/50 rounded-xl min-h-[32px] items-center">
                 {wordStatuses.map((ws, i) => (
                   <span
                     key={i}
-                    className={`px-1.5 py-0.5 rounded text-sm font-medium transition-colors ${
+                    className={`inline-block w-4 h-4 rounded-sm ${
                       ws.status === "correct"
-                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                        ? "bg-emerald-400"
                         : ws.status === "close"
-                        ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                        ? "bg-amber-400"
                         : ws.status === "wrong"
-                        ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
-                        : "text-muted-foreground"
+                        ? "bg-rose-400"
+                        : "bg-muted-foreground/20"
                     }`}
-                  >
-                    {ws.typed || ws.word}
-                  </span>
+                  />
                 ))}
               </div>
             )}
