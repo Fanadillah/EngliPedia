@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, BookOpen, Heart, Trophy, User, BarChart3, Sparkles, LogIn, Brain, GraduationCap, Target, Headphones } from "lucide-react";
+import { Home, Search, BookOpen, Heart, Trophy, User, BarChart3, Sparkles, LogIn, Brain, GraduationCap, Target, Headphones, Film } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 import { useAuth } from "@/components/auth/auth-context";
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/learn", icon: GraduationCap, label: "Belajar" },
   { href: "/practice", icon: Brain, label: "Latihan" },
   { href: "/listening", icon: Headphones, label: "Listening" },
+  { href: "/video-learning", icon: Film, label: "Video" },
   { href: "/search", icon: Search, label: "Jelajahi" },
   { href: "/saved", icon: Heart, label: "Tersimpan" },
   { href: "/progress", icon: Target, label: "Progress" },
