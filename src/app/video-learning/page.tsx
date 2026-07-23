@@ -161,6 +161,7 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
   const segmentRef = useRef<{start: number; end: number} | null>(null);
   const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onAutoPauseRef = useRef<(() => void) | null>(null);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     if (!videoId || !containerEl) return;
@@ -199,14 +200,20 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
               if (segmentTimerRef.current) {
                 clearTimeout(segmentTimerRef.current);
               }
-              const now = playerRef.current?.getCurrentTime() ?? 0;
-              const end = segmentRef.current.end;
-              const remaining = Math.max((end - now) * 1000 + 100, 50);
+              const duration = segmentRef.current.end - segmentRef.current.start;
               segmentTimerRef.current = setTimeout(() => {
                 playerRef.current?.pauseVideo();
                 segmentRef.current = null;
                 onAutoPauseRef.current?.();
-              }, remaining);
+              }, duration * 1000 + 100);
+            }
+            if (event.data === 0 && segmentRef.current) {
+              if (segmentTimerRef.current) {
+                clearTimeout(segmentTimerRef.current);
+                segmentTimerRef.current = null;
+              }
+              segmentRef.current = null;
+              onAutoPauseRef.current?.();
             }
           },
         },
@@ -247,25 +254,36 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
   }, []);
 
   const playSegment = useCallback((start: number, end: number) => {
-    if (!playerReadyRef.current) return;
-    if (segmentTimerRef.current) {
-      clearTimeout(segmentTimerRef.current);
-      segmentTimerRef.current = null;
-    }
-    segmentRef.current = null;
-    playerRef.current?.pauseVideo();
-    segmentRef.current = { start, end };
-    playerRef.current?.seekTo(start, true);
-    playerRef.current?.playVideo();
-
-    const durationMs = (end - start + 2) * 1000;
-    segmentTimerRef.current = setTimeout(() => {
-      if (segmentRef.current) {
-        playerRef.current?.pauseVideo();
-        segmentRef.current = null;
-        onAutoPauseRef.current?.();
+    retryCountRef.current = 0;
+    const exec = () => {
+      if (!playerReadyRef.current) {
+        retryCountRef.current++;
+        if (retryCountRef.current <= 5) {
+          segmentTimerRef.current = setTimeout(exec, 300);
+        }
+        return;
       }
-    }, durationMs);
+      retryCountRef.current = 0;
+      if (segmentTimerRef.current) {
+        clearTimeout(segmentTimerRef.current);
+        segmentTimerRef.current = null;
+      }
+      segmentRef.current = null;
+      playerRef.current?.pauseVideo();
+      segmentRef.current = { start, end };
+      playerRef.current?.seekTo(start, true);
+      playerRef.current?.playVideo();
+
+      const fallbackMs = (end - start + 2) * 1000;
+      segmentTimerRef.current = setTimeout(() => {
+        if (segmentRef.current) {
+          playerRef.current?.pauseVideo();
+          segmentRef.current = null;
+          onAutoPauseRef.current?.();
+        }
+      }, fallbackMs);
+    };
+    exec();
   }, []);
 
   const stopPlayback = useCallback(() => {
@@ -679,7 +697,6 @@ export default function VideoLearningPage() {
           {/* YouTube Player */}
           <div className="rounded-2xl overflow-hidden border border-border shadow-md bg-black aspect-video relative">
             <div ref={containerRef} className="w-full h-full" />
-            <div className="absolute inset-0 z-10" />
             {isPlaying && (
               <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/60 text-white text-[10px] flex items-center gap-1">
                 <Volume2 className="w-3 h-3" />
