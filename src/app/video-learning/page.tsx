@@ -179,10 +179,12 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
         width: "100%",
         playerVars: {
           autoplay: 0,
-          controls: 1,
+          controls: 0,
           modestbranding: 1,
           rel: 0,
           showinfo: 0,
+          disablekb: 1,
+          fs: 0,
         },
         events: {
           onReady: () => {
@@ -250,18 +252,20 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
       clearTimeout(segmentTimerRef.current);
       segmentTimerRef.current = null;
     }
+    segmentRef.current = null;
+    playerRef.current?.pauseVideo();
     segmentRef.current = { start, end };
     playerRef.current?.seekTo(start, true);
     playerRef.current?.playVideo();
 
-    // Fallback: auto-pause by duration if onStateChange doesn't fire
+    const durationMs = (end - start + 2) * 1000;
     segmentTimerRef.current = setTimeout(() => {
       if (segmentRef.current) {
         playerRef.current?.pauseVideo();
         segmentRef.current = null;
         onAutoPauseRef.current?.();
       }
-    }, (end - start + 2) * 1000);
+    }, durationMs);
   }, []);
 
   const stopPlayback = useCallback(() => {
@@ -675,6 +679,7 @@ export default function VideoLearningPage() {
           {/* YouTube Player */}
           <div className="rounded-2xl overflow-hidden border border-border shadow-md bg-black aspect-video relative">
             <div ref={containerRef} className="w-full h-full" />
+            <div className="absolute inset-0 z-10" />
             {isPlaying && (
               <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/60 text-white text-[10px] flex items-center gap-1">
                 <Volume2 className="w-3 h-3" />
