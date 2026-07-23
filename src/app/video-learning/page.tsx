@@ -159,7 +159,8 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
   const stateRef = useRef(-1);
   const playerReadyRef = useRef(false);
   const segmentRef = useRef<{start: number; end: number} | null>(null);
-  const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const watchIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onAutoPauseRef = useRef<(() => void) | null>(null);
   const retryCountRef = useRef(0);
 
@@ -197,23 +198,37 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
             stateRef.current = event.data;
             setIsPlaying(event.data === 1);
             if (event.data === 1 && segmentRef.current) {
-              if (segmentTimerRef.current) {
-                clearTimeout(segmentTimerRef.current);
+              if (retryTimerRef.current) {
+                clearTimeout(retryTimerRef.current);
+                retryTimerRef.current = null;
               }
-              const duration = segmentRef.current.end - segmentRef.current.start;
-              segmentTimerRef.current = setTimeout(() => {
-                playerRef.current?.pauseVideo();
-                segmentRef.current = null;
-                onAutoPauseRef.current?.();
-              }, duration * 1000 + 100);
+              if (watchIntervalRef.current) {
+                clearInterval(watchIntervalRef.current);
+              }
+              const end = segmentRef.current.end;
+              watchIntervalRef.current = setInterval(() => {
+                const now = playerRef.current?.getCurrentTime() ?? 0;
+                if (now >= end) {
+                  if (watchIntervalRef.current) {
+                    clearInterval(watchIntervalRef.current);
+                    watchIntervalRef.current = null;
+                  }
+                  playerRef.current?.pauseVideo();
+                  segmentRef.current = null;
+                  onAutoPauseRef.current?.();
+                }
+              }, 100);
             }
-            if (event.data === 0 && segmentRef.current) {
-              if (segmentTimerRef.current) {
-                clearTimeout(segmentTimerRef.current);
-                segmentTimerRef.current = null;
+            if ((event.data === 2 || event.data === 0) && segmentRef.current) {
+              if (retryTimerRef.current) {
+                clearTimeout(retryTimerRef.current);
+                retryTimerRef.current = null;
+              }
+              if (watchIntervalRef.current) {
+                clearInterval(watchIntervalRef.current);
+                watchIntervalRef.current = null;
               }
               segmentRef.current = null;
-              onAutoPauseRef.current?.();
             }
           },
         },
@@ -227,8 +242,11 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
     }
 
     return () => {
-      if (segmentTimerRef.current) {
-        clearTimeout(segmentTimerRef.current);
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+      if (watchIntervalRef.current) {
+        clearInterval(watchIntervalRef.current);
       }
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch {}
@@ -259,35 +277,36 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
       if (!playerReadyRef.current) {
         retryCountRef.current++;
         if (retryCountRef.current <= 20) {
-          segmentTimerRef.current = setTimeout(exec, 300);
+          retryTimerRef.current = setTimeout(exec, 300);
         }
         return;
       }
       retryCountRef.current = 0;
-      if (segmentTimerRef.current) {
-        clearTimeout(segmentTimerRef.current);
-        segmentTimerRef.current = null;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
       }
+      if (watchIntervalRef.current) {
+        clearInterval(watchIntervalRef.current);
+        watchIntervalRef.current = null;
+      }
+      segmentRef.current = null;
       playerRef.current?.pauseVideo();
       segmentRef.current = { start, end };
       playerRef.current?.seekTo(start, true);
       playerRef.current?.playVideo();
-
-      segmentTimerRef.current = setTimeout(() => {
-        if (segmentRef.current) {
-          playerRef.current?.pauseVideo();
-          segmentRef.current = null;
-          onAutoPauseRef.current?.();
-        }
-      }, (end - start + 2) * 1000);
     };
     exec();
   }, []);
 
   const stopPlayback = useCallback(() => {
-    if (segmentTimerRef.current) {
-      clearTimeout(segmentTimerRef.current);
-      segmentTimerRef.current = null;
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    if (watchIntervalRef.current) {
+      clearInterval(watchIntervalRef.current);
+      watchIntervalRef.current = null;
     }
     segmentRef.current = null;
     playerRef.current?.pauseVideo();
