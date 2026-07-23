@@ -258,7 +258,7 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
     const exec = () => {
       if (!playerReadyRef.current) {
         retryCountRef.current++;
-        if (retryCountRef.current <= 5) {
+        if (retryCountRef.current <= 20) {
           segmentTimerRef.current = setTimeout(exec, 300);
         }
         return;
@@ -268,20 +268,18 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
         clearTimeout(segmentTimerRef.current);
         segmentTimerRef.current = null;
       }
-      segmentRef.current = null;
       playerRef.current?.pauseVideo();
       segmentRef.current = { start, end };
       playerRef.current?.seekTo(start, true);
       playerRef.current?.playVideo();
 
-      const fallbackMs = (end - start + 2) * 1000;
       segmentTimerRef.current = setTimeout(() => {
         if (segmentRef.current) {
           playerRef.current?.pauseVideo();
           segmentRef.current = null;
           onAutoPauseRef.current?.();
         }
-      }, fallbackMs);
+      }, (end - start + 2) * 1000);
     };
     exec();
   }, []);
@@ -791,10 +789,10 @@ export default function VideoLearningPage() {
                   </button>
                   <button
                     onClick={replaySentence}
-                    className="py-3 px-4 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-                    title="Putar ulang"
+                    className="py-3 px-5 rounded-xl bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors flex items-center gap-1.5"
                   >
-                    <RotateCcw className="w-4 h-4" />
+                    <Play className="w-4 h-4" />
+                    Putar
                   </button>
                   <button
                     onClick={skipSentence}
