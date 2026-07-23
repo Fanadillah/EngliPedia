@@ -1,3 +1,5 @@
+"use client";
+
 import { FlashcardDeck } from "@/components/flashcard/flashcard-deck";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
