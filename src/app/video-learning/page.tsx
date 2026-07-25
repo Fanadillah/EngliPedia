@@ -197,39 +197,6 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
           onStateChange: (event: any) => {
             stateRef.current = event.data;
             setIsPlaying(event.data === 1);
-            if (event.data === 1 && segmentRef.current) {
-              if (retryTimerRef.current) {
-                clearTimeout(retryTimerRef.current);
-                retryTimerRef.current = null;
-              }
-              if (watchIntervalRef.current) {
-                clearInterval(watchIntervalRef.current);
-              }
-              const end = segmentRef.current.end;
-              watchIntervalRef.current = setInterval(() => {
-                const now = playerRef.current?.getCurrentTime() ?? 0;
-                if (now >= end) {
-                  if (watchIntervalRef.current) {
-                    clearInterval(watchIntervalRef.current);
-                    watchIntervalRef.current = null;
-                  }
-                  playerRef.current?.pauseVideo();
-                  segmentRef.current = null;
-                  onAutoPauseRef.current?.();
-                }
-              }, 100);
-            }
-            if ((event.data === 2 || event.data === 0) && segmentRef.current) {
-              if (retryTimerRef.current) {
-                clearTimeout(retryTimerRef.current);
-                retryTimerRef.current = null;
-              }
-              if (watchIntervalRef.current) {
-                clearInterval(watchIntervalRef.current);
-                watchIntervalRef.current = null;
-              }
-              segmentRef.current = null;
-            }
           },
         },
       });
@@ -290,11 +257,25 @@ function useYouTubePlayer(videoId: string, onReady?: () => void) {
         clearInterval(watchIntervalRef.current);
         watchIntervalRef.current = null;
       }
-      segmentRef.current = null;
-      playerRef.current?.pauseVideo();
+      // Seek slightly before start to avoid keyframe alignment cutting the beginning
+      const seekStart = Math.max(0, start - 0.5);
       segmentRef.current = { start, end };
-      playerRef.current?.seekTo(start, true);
+      playerRef.current?.seekTo(seekStart, true);
       playerRef.current?.playVideo();
+
+      const segEnd = end;
+      watchIntervalRef.current = setInterval(() => {
+        const now = playerRef.current?.getCurrentTime() ?? 0;
+        if (now >= segEnd) {
+          if (watchIntervalRef.current) {
+            clearInterval(watchIntervalRef.current);
+            watchIntervalRef.current = null;
+          }
+          playerRef.current?.pauseVideo();
+          segmentRef.current = null;
+          onAutoPauseRef.current?.();
+        }
+      }, 100);
     };
     exec();
   }, []);
@@ -421,8 +402,6 @@ export default function VideoLearningPage() {
   // Re-play current sentence
   const replaySentence = () => {
     if (!currentSentence) return;
-    setUserInput("");
-    setWordStatuses([]);
     setSubmitted(false);
     setAttempts((p) => p + 1);
     // Remove previous result for this sentence to prevent score inflation
@@ -829,29 +808,54 @@ export default function VideoLearningPage() {
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-xl p-3 text-center ${
+                className="space-y-3"
+              >
+                {/* Correct answer with word coloring */}
+                <div className={`rounded-xl p-3 ${
                   wordStatuses.filter((w) => w.status === "correct").length /
                     wordStatuses.length >=
                   0.8
                     ? "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30"
                     : "bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30"
-                }`}
-              >
-                <p
-                  className={`text-sm font-semibold ${
-                    wordStatuses.filter((w) => w.status === "correct").length /
+                }`}>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {wordStatuses.map((ws, i) => (
+                      <span
+                        key={i}
+                        className={`px-2 py-0.5 rounded-md text-sm font-medium ${
+                          ws.status === "correct"
+                            ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                            : ws.status === "close"
+                            ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
+                            : ws.status === "wrong"
+                            ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {ws.word}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {wordStatuses.filter((w) => w.status === "correct").length} /{" "}
+                    {wordStatuses.length} kata benar
+                    {wordStatuses.filter((w) => w.status === "correct").length /
                       wordStatuses.length >=
-                    0.8
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-amber-600 dark:text-amber-400"
-                  }`}
-                >
-                  {wordStatuses.filter((w) => w.status === "correct").length} /{" "}
-                  {wordStatuses.length} kata benar
-                  {wordStatuses.filter((w) => w.status === "correct").length /
-                    wordStatuses.length >=
-                    0.8 && " ✅"}
-                </p>
+                      0.8 && " ✅"}
+                  </p>
+                </div>
+
+                {/* User's input for comparison */}
+                <div className="bg-muted/50 rounded-xl px-3 py-2">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    Jawaban kamu:
+                  </p>
+                  <p className="text-sm text-card-foreground">
+                    {userInput || (
+                      <span className="italic text-muted-foreground">(kosong)</span>
+                    )}
+                  </p>
+                </div>
               </motion.div>
             )}
           </div>
