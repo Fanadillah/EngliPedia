@@ -25,6 +25,7 @@ import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
 import { OrganicBlobs } from "@/components/ui/organic-blobs";
 import { AnimatedWord, FadeIn, SlideUp, StaggerContainer, StaggerItem } from "@/components/ui/motion-components";
+import { WotdCard } from "@/components/ui/wotd-card";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { motion } from "motion/react";
 import { loadState, checkStreak } from "@/lib/gamification";
@@ -293,84 +294,7 @@ export default function Home() {
 
           {/* Word of the Day */}
           {wordOfDay && (
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-secondary p-[1px]">
-              <div className="bg-card rounded-[23px] p-5 space-y-4">
-                <FadeIn>
-                  <div className="flex items-center justify-between">
-                    <Badge className="bg-primary/10 text-primary border-0 text-xs font-medium px-2.5 py-1">
-                      <Zap className="w-3 h-3 mr-1" />
-                      Kata Hari Ini
-                    </Badge>
-                    <div className="flex items-center gap-2">
-                      {wotdMasteryStatus === "mastered" && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                          🏆 Dikuasai
-                        </span>
-                      )}
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => speak(wordOfDay.word)}
-                        className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                      >
-                        <Volume2 className="w-4 h-4 text-primary" />
-                      </motion.button>
-                    </div>
-                  </div>
-                </FadeIn>
-
-                <div className="text-center py-2">
-                  <h2 className="text-4xl font-bold tracking-tight text-foreground">
-                    <AnimatedWord>{wordOfDay.word}</AnimatedWord>
-                  </h2>
-                  {wordOfDay.ipa && (
-                    <SlideUp delay={0.15}>
-                      <p className="text-sm font-mono text-muted-foreground mt-1.5">
-                        {wordOfDay.ipa}
-                      </p>
-                    </SlideUp>
-                  )}
-                  {wordOfDay.cara_baca && (
-                    <SlideUp delay={0.25}>
-                      <p className="text-sm font-medium text-primary mt-2 bg-primary/5 inline-block px-3 py-1 rounded-full">
-                        &quot;{wordOfDay.cara_baca}&quot;
-                      </p>
-                    </SlideUp>
-                  )}
-                </div>
-
-                <FadeIn delay={0.35}>
-                  <div className="text-center">
-                    <p className="text-lg font-bold text-primary">
-                      {wordOfDay.meaning_id}
-                    </p>
-                  </div>
-                </FadeIn>
-
-                {wordOfDay.example && (
-                  <FadeIn delay={0.45}>
-                    <div className="bg-muted rounded-xl p-3.5">
-                      <p className="text-xs text-muted-foreground mb-1 font-medium">Contoh:</p>
-                      <p className="text-sm text-card-foreground/80 italic leading-relaxed">
-                        &quot;{wordOfDay.example}&quot;
-                      </p>
-                    </div>
-                  </FadeIn>
-                )}
-
-                <FadeIn delay={0.55}>
-                  <Link href={`/word/${wordOfDay.id}`}>
-                    <Button
-                      variant="outline"
-                      className="w-full border-primary/20 text-primary hover:bg-primary/5 rounded-xl"
-                    >
-                      Pelajari Kata Ini
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </Link>
-                </FadeIn>
-              </div>
-            </div>
+            <WotdCard word={wordOfDay} masteryValue={wotdMasteryLevel * 25} />
           )}
 
           {/* Quick Stats */}
