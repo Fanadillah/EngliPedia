@@ -14,6 +14,7 @@ const leftItems = [
 
 const rightItems = [
   { href: "/saved", icon: Heart, label: "Tersimpan" },
+  { href: "/statistics", icon: BarChart3, label: "Statistik" },
   { href: "/profile", icon: User, label: "Profil" },
 ];
 
