@@ -13,7 +13,9 @@ import { awardXp, getXpEventMessage } from "@/lib/gamification";
 import { addMistake } from "@/lib/learning";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
+import { useSound } from "@/lib/sound-manager";
 import { useRouter } from "next/navigation";
+import { playSound } from "@/lib/sound-manager";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -73,6 +75,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 export default function QuizPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { playSound } = useSound();
 
   // Config state
   const [config, setConfig] = useState<QuizConfig>({
@@ -202,6 +205,7 @@ export default function QuizPage() {
 
   // Handle answer selection
   const handleAnswer = (index: number) => {
+    playSound("click");
     if (answerState !== "waiting" || !currentQuestion) return;
 
     setSelectedAnswer(index);
@@ -210,6 +214,7 @@ export default function QuizPage() {
     if (isCorrect) {
       setAnswerState("correct");
       awardXp("learn_flashcard"); // +5 XP
+      playSound("correct");
 
       // Update streak
       setStreak((prev) => {
@@ -234,6 +239,7 @@ export default function QuizPage() {
     } else {
       setAnswerState("incorrect");
       setStreak(0);
+      playSound("wrong");
       addMistake(currentQuestion.word.id, "quiz");
     }
 
@@ -266,8 +272,8 @@ export default function QuizPage() {
     const isPerfect = correctCount >= totalQuestions;
 
     // Award session completion
-    awardXp("complete_session"); // +30 XP
-
+    awardXp("complete_session");
+    playSound("sessionDone");
     if (isPerfect) {
       awardXp("master_word"); // +25 XP bonus for perfect
       setShowConfetti(true);
@@ -286,6 +292,7 @@ export default function QuizPage() {
       });
     }
 
+    playSound("sessionComplete");
     setPhase("result");
   };
 

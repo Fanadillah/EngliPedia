@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { AuthProvider } from "@/components/auth/auth-context";
+import { SoundProvider } from "@/lib/sound-manager";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -51,9 +52,11 @@ export default function RootLayout({
           __html: `!function(){try{var e=localStorage.getItem("engli-theme")||"system",t="dark"===e||"system"===e&&window.matchMedia("(prefers-color-scheme: dark)").matches;t&&document.documentElement.classList.add("dark")}catch(e){}}()`
         }} />
         <AuthProvider>
-          <ToastProvider>
-            <AppShell>{children}</AppShell>
-          </ToastProvider>
+          <SoundProvider>
+            <ToastProvider>
+              <AppShell>{children}</AppShell>
+            </ToastProvider>
+          </SoundProvider>
         </AuthProvider>
       </body>
     </html>

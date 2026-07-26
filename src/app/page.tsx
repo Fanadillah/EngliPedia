@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
@@ -42,6 +43,7 @@ const motivationalQuotes = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [wordOfDay, setWordOfDay] = useState<Word | null>(null);
   const [randomWords, setRandomWords] = useState<Word[]>([]);
@@ -67,6 +69,13 @@ export default function Home() {
   const { showToast } = useToast();
 
   useEffect(() => {
+    // Redirect to onboarding if first visit
+    const onboardingDone = localStorage.getItem("engli-onboarding-done");
+    if (!onboardingDone) {
+      router.replace("/onboarding");
+      return;
+    }
+
     setMounted(true);
     loadWords();
     loadDailyLearning();

@@ -19,6 +19,7 @@ import { FadeIn } from "@/components/ui/motion-components";
 import { motion, AnimatePresence } from "motion/react";
 import { createClient } from "@/utils/supabase/client";
 import { awardXp } from "@/lib/gamification";
+import { useSound } from "@/lib/sound-manager";
 import type { Word } from "@/types/word";
 
 type ReviewQuestion = {
@@ -36,6 +37,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 export default function UnitReviewPage() {
   const params = useParams();
   const unitId = params.unitId as string;
+  const { playSound } = useSound();
 
   const [loading, setLoading] = useState(true);
   const [unitTitle, setUnitTitle] = useState("");
@@ -178,6 +180,7 @@ export default function UnitReviewPage() {
     setSelectedOption(selected);
     const isCorrect = selected.toLowerCase().trim() === questions[currentIdx].correctAnswer.toLowerCase().trim();
     setResult(isCorrect ? "correct" : "wrong");
+    playSound(isCorrect ? "correct" : "incorrect");
     if (isCorrect) setScore((s) => s + 1);
   };
 
@@ -188,6 +191,7 @@ export default function UnitReviewPage() {
       setResult(null);
     } else {
       awardXp("complete_session");
+      playSound("sessionComplete");
       setStep("complete");
     }
   };

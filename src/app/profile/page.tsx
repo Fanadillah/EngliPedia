@@ -13,6 +13,7 @@ import { loadState, xpProgress, LEVEL_TITLES } from "@/lib/gamification";
 import type { GamificationState } from "@/lib/gamification";
 import { motion } from "motion/react";
 import { getDailyGoal, updateDailyGoal } from "@/lib/learning";
+import { useSound } from "@/lib/sound-manager";
 
 const AUDIO_SPEED_KEY = "engli-audio-speed";
 const DAILY_REMINDER_KEY = "engli-daily-reminder";
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [dailyReminder, setDailyReminder] = useState(false);
   const [audioSpeed, setAudioSpeed] = useState(1);
+  const { muted, toggleMute } = useSound();
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -408,6 +410,24 @@ export default function ProfilePage() {
                 <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
                   <Volume2 className="w-4 h-4 text-muted-foreground" />
                 </div>
+                <span className="text-sm font-medium">Sound Effects</span>
+              </div>
+              <button
+                onClick={toggleMute}
+                className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${
+                  muted ? "bg-muted-foreground/20" : "bg-primary"
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-card shadow-sm absolute top-0.5 transition-all ${
+                  muted ? "left-0.5" : "left-4.5"
+                }`} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
+                  <Volume2 className="w-4 h-4 text-muted-foreground" />
+                </div>
                 <div>
                   <span className="text-sm font-medium">Kecepatan Audio</span>
                   <p className="text-[11px] text-muted-foreground">
@@ -433,6 +453,22 @@ export default function ProfilePage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Lihat Tutorial */}
+            <div className="flex items-center justify-between p-4">
+              <button
+                onClick={() => router.push("/onboarding")}
+                className="flex items-center gap-3 w-full"
+              >
+                <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="text-left">
+                  <span className="text-sm font-medium">Lihat Tutorial</span>
+                  <p className="text-[11px] text-muted-foreground">Ulangi pengenalan aplikasi</p>
+                </div>
+              </button>
             </div>
 
             {/* PWA Section */}

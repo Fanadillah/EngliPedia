@@ -13,6 +13,8 @@ import { awardXp } from "@/lib/gamification";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
 import { useRouter } from "next/navigation";
+import { useSound } from "@/lib/sound-manager";
+import { playSound } from "@/lib/sound-manager";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -70,6 +72,7 @@ function generateHint(word: string): string {
 export default function WritingPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { playSound } = useSound();
 
   const [config, setConfig] = useState<WritingConfig>({
     questionCount: 10,
@@ -151,6 +154,7 @@ export default function WritingPage() {
   const currentWord = words[currentIndex];
 
   const handleSubmit = () => {
+    playSound("tap");
     if (!currentWord || answerState !== "waiting" || !userInput.trim()) return;
 
     const inputNorm = normalize(userInput);
@@ -160,6 +164,7 @@ export default function WritingPage() {
     setAnswerState(isCorrect ? "correct" : "incorrect");
 
     if (isCorrect) {
+      playSound("correct");
       awardXp("learn_flashcard");
       setStreak((prev) => {
         const s = prev + 1;
@@ -175,6 +180,7 @@ export default function WritingPage() {
       });
     } else {
       setStreak(0);
+      playSound("wrong");
     }
 
     const result: WritingResult = {
@@ -204,6 +210,7 @@ export default function WritingPage() {
     const isPerfect = correctCount === words.length;
 
     awardXp("complete_session");
+    playSound("sessionDone");
     if (isPerfect) {
       awardXp("master_word");
       setShowConfetti(true);
@@ -214,6 +221,7 @@ export default function WritingPage() {
         duration: 4000,
       });
     }
+    playSound("sessionComplete");
     setPhase("result");
   };
 

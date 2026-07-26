@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Sparkles, Trophy, Flame, Star, Zap } from "lucide-react";
+import { useSound } from "@/lib/sound-manager";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -50,6 +51,16 @@ const typeColors = {
   error: "from-red-400 to-rose-500",
 };
 
+// ─── Sound map: toast type → sound name ────────────────────────────────
+
+const toastSoundMap: Record<string, string> = {
+  xp: "xpGain",
+  achievement: "achievement",
+  streak: "streak",
+  success: "correct",
+  error: "incorrect",
+};
+
 // ─── Provider ───────────────────────────────────────────────────────────
 
 let toastCounter = 0;
@@ -57,6 +68,7 @@ let toastCounter = 0;
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const { playSound } = useSound();
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -72,6 +84,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const id = `toast-${++toastCounter}`;
       const duration = toast.duration ?? (toast.type === "xp" ? 2500 : 4000);
 
+      // Play sound sesuai tipe toast (info → silent)
+      const soundName = toastSoundMap[toast.type];
+      if (soundName) {
+        playSound(soundName as any);
+      }
+
       setToasts((prev) => [...prev.slice(-4), { ...toast, id }]); // Max 4 visible
 
       const timer = setTimeout(() => {
@@ -79,7 +97,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       }, duration);
       timersRef.current.set(id, timer);
     },
-    [dismissToast]
+    [dismissToast, playSound]
   );
 
   return (
