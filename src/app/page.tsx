@@ -25,7 +25,7 @@ import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
 import { OrganicBlobs } from "@/components/ui/organic-blobs";
 import { AnimatedWord, FadeIn, SlideUp, StaggerContainer, StaggerItem } from "@/components/ui/motion-components";
-import { WotdCard } from "@/components/ui/wotd-card";
+import { WotdCard } from "@/components/word/wotd-card";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { motion } from "motion/react";
 import { loadState, checkStreak } from "@/lib/gamification";
@@ -313,9 +313,6 @@ export default function Home() {
           {wordOfDay && (
             <WotdCard 
               word={wordOfDay} 
-              masteryValue={wotdMasteryLevel * 25} 
-              onNext={handleNextWotd}
-              onPrev={handlePrevWotd}
             />
           )}
 
