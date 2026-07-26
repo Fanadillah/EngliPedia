@@ -215,7 +215,7 @@ export default function StatisticsPage() {
           <StatCard
             icon={Flame}
             label="Streak"
-            value={`${stats.streak} hari`}
+            value={stats.streak.toString()}
             sublabel={stats.streak >= 7 ? `🔥 ${Math.floor(stats.streak / 7)} minggu!` : undefined}
             color="text-orange-500"
             bgGradient="bg-orange-50 dark:bg-orange-950/30"
@@ -313,50 +313,11 @@ export default function StatisticsPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-card rounded-2xl border border-border p-5 space-y-3"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Flame className="w-5 h-5 text-orange-500" />
-              <h2 className="text-sm font-bold">Streak Progress</h2>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {stats.streak} / {nextMilestone} hari
-            </span>
-          </div>
-
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500"
-              initial={{ width: 0 }}
-              animate={{ width: `${streakProgress}%` }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            />
-          </div>
-
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>🔥 {stats.streak} hari</span>
-            <span>🎯 {nextMilestone} hari</span>
-          </div>
-
-          {/* Milestone dots */}
-          <div className="flex items-center justify-between pt-1">
-            {[7, 14, 21, 30, 60, 90].map((m) => {
-              const reached = stats.streak >= m;
-              return (
-                <div key={m} className="flex flex-col items-center gap-1">
-                  <div
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      reached                      ? "bg-orange-400" : "bg-muted-foreground/20"
-                    }`}
-                  />
-                  <span className={`text-[8px] ${reached ? "text-orange-500 font-semibold" : "text-muted-foreground/50"}`}>
-                    {m}d
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <StreakCalendar
+            streak={stats.streak}
+            lastActiveDate={stats.lastActiveDate || new Date().toISOString().split("T")[0]}
+          />
         </motion.div>
 
         {/* Activity Breakdown */}

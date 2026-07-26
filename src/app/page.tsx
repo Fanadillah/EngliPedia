@@ -26,8 +26,8 @@ import type { Word } from "@/types/word";
 import { OrganicBlobs } from "@/components/ui/organic-blobs";
 import { AnimatedWord, FadeIn, SlideUp, StaggerContainer, StaggerItem } from "@/components/ui/motion-components";
 import { WotdCard } from "@/components/word/wotd-card";
+import { StreakCalendar } from "@/components/ui/StreakCalendar";
 import { ProgressRing } from "@/components/ui/progress-ring";
-import { motion } from "motion/react";
 import { loadState, checkStreak } from "@/lib/gamification";
 import { getDailyLearningTasks, getDailyGoal, getTodayProgress, getDailyTasks, type DailyTaskItem } from "@/lib/learning";
 import { useToast } from "@/components/ui/toast-provider";
@@ -309,6 +309,8 @@ export default function Home() {
             </div>
           </FadeIn>
 
+          <StreakCalendar streak={gamification.streak} lastActiveDate={gamification.lastActiveDate} className="mb-6" />
+
           {/* Word of the Day */}
           {wordOfDay && (
             <WotdCard 
@@ -317,6 +319,12 @@ export default function Home() {
               onPrev={handlePrevWotd}
             />
           )}
+
+          {/* Streak Calendar */}
+          <StreakCalendar
+            streak={gamification.streak}
+            lastActiveDate={gamification.lastActiveDate || new Date().toISOString().split("T")[0]}
+          />
 
           {/* Quick Stats */}
           <StaggerContainer className="grid grid-cols-4 gap-2.5">
