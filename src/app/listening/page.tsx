@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { createClient } from "@/utils/supabase/client";
 import { awardXp } from "@/lib/gamification";
 import type { Word } from "@/types/word";
+import { useSound } from "@/lib/sound-manager";
+import { playSound } from "@/lib/sound-manager";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -108,6 +110,7 @@ export default function ListeningPage() {
   const [score, setScore] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const { playSound } = useSound();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -230,6 +233,7 @@ export default function ListeningPage() {
     setSelectedOption(null);
     setSpeed(1);
     setLoading(false);
+    playSound("click");
     setPhase("practice");
 
     setTimeout(() => {
@@ -250,6 +254,7 @@ export default function ListeningPage() {
 
   // ─── Submit Answer ──────────────────────────────────────────────────
   const handleSubmit = () => {
+    playSound("click");
     const q = questions[qIndex];
     if (!q) return;
 
@@ -261,7 +266,12 @@ export default function ListeningPage() {
     }
 
     setCorrect(isCorrect);
-    if (isCorrect) setScore((s) => s + 1);
+    if (isCorrect) {
+      setScore((s) => s + 1);
+      playSound("correct");
+    } else {
+      playSound("wrong");
+    }
 
     setTimeout(() => {
       if (qIndex < questions.length - 1) {
@@ -273,6 +283,8 @@ export default function ListeningPage() {
         setTimeout(() => playAudio(questions[next].audio), 300);
       } else {
         awardXp("complete_session");
+        awardXp("complete_session");
+        playSound("sessionComplete");
         setPhase("result");
       }
     }, 1500);

@@ -13,6 +13,8 @@ import { getMistakes } from "@/lib/learning";
 import { useAuth } from "@/components/auth/auth-context";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
+import { useSound } from "@/lib/sound-manager";
+import { playSound } from "@/lib/sound-manager";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ export function FlashcardDeck({ mode = "normal" }: { mode?: "normal" | "mistakes
   const startTimeRef = useRef<number>(0);
   const masteryAwardedRef = useRef(false);
   const { showToast } = useToast();
+  const { playSound } = useSound();
   const { user } = useAuth();
   const [dueCount, setDueCount] = useState(0);
 
@@ -160,7 +163,10 @@ export function FlashcardDeck({ mode = "normal" }: { mode?: "normal" | "mistakes
   }, []);
 
   const handleFlip = () => {
-    if (!swiping) setFlipped((prev) => !prev);
+    if (!swiping) {
+      setFlipped((prev) => !prev);
+      playSound("flip");
+    }
   };
 
   const handleReview = useCallback(
@@ -168,6 +174,13 @@ export function FlashcardDeck({ mode = "normal" }: { mode?: "normal" | "mistakes
       if (!words[currentIndex]) return;
 
       const word = words[currentIndex];
+
+      // Play correct/wrong sound
+      if (difficulty === "easy" || difficulty === "good") {
+        playSound("correct");
+      } else {
+        playSound("wrong");
+      }
 
       // Check mastery BEFORE review
       const cardBefore = getCardForWord(word.id);
@@ -232,7 +245,9 @@ export function FlashcardDeck({ mode = "normal" }: { mode?: "normal" | "mistakes
           duration,
         });
         setSessionDone(true);
-        setShowConfetti(true);
+        playSound("sessionComplete");
+        playSound("sessionComplete");
+        playSound("sessionDone");
         setTimeout(() => setShowConfetti(false), 3000);
 
         showToast({
@@ -250,10 +265,12 @@ export function FlashcardDeck({ mode = "normal" }: { mode?: "normal" | "mistakes
     (_: any, info: { offset: { x: number } }) => {
       setSwiping(false);
       if (info.offset.x < -80) {
-        // Swipe left = Hard — langsung review tanpa animasi perantara
+        // Swipe left = Hard
+        playSound("swipe");
         handleReview("hard");
       } else if (info.offset.x > 80) {
-        // Swipe right = Easy — langsung review tanpa animasi perantara
+        // Swipe right = Easy
+        playSound("swipe");
         handleReview("easy");
       }
     },

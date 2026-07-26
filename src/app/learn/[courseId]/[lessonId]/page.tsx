@@ -30,6 +30,7 @@ import { createClient } from "@/utils/supabase/client";
 import { GrammarExplanation } from "@/components/grammar/grammar-explanation";
 import { GrammarExample } from "@/components/grammar/grammar-example";
 import { GrammarExercise } from "@/components/grammar/grammar-exercise";
+import { useSound } from "@/lib/sound-manager";
 
 type Step =
   | "intro"
@@ -58,6 +59,7 @@ type ListeningQuestion = {
 };
 
 export default function LessonPage() {
+  const { playSound } = useSound();
   const params = useParams();
   const courseId = params.courseId as string;
   const lessonId = params.lessonId as string;
@@ -358,8 +360,10 @@ export default function LessonPage() {
     if (correct) {
       setFbScore((prev) => prev + 1);
       setCompletedActivities((prev) => prev + 1);
+      playSound("correct");
     } else {
       addMistake(fbWords[fbIndex].id, lessonTitle);
+      playSound("incorrect");
     }
 
     setTimeout(() => {
@@ -407,8 +411,10 @@ export default function LessonPage() {
     if (correct) {
       setListenScore((prev) => prev + 1);
       setCompletedActivities((prev) => prev + 1);
+      playSound("correct");
     } else {
       addMistake(q.word.id, lessonTitle);
+      playSound("incorrect");
     }
 
     setTimeout(() => {

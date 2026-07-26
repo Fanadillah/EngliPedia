@@ -354,7 +354,10 @@ export default function VideoLearningPage() {
     setPhase("loading");
     setLoadingError(null);
     try {
-      const res = await fetch(`/api/youtube-transcript?videoId=${videoId}&lang=en`);
+      const res = await fetch(`/api/youtube-transcript?videoId=${videoId}&lang=en`, {
+        cache: "no-store",
+        headers: { "Accept": "application/json" },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load transcript");
       if (!data.sentences || data.sentences.length === 0) {

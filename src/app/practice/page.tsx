@@ -19,6 +19,7 @@ import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui/motion-co
 import { motion } from "motion/react";
 import { getMistakes } from "@/lib/learning";
 import { useAuth } from "@/components/auth/auth-context";
+import { useSound } from "@/lib/sound-manager";
 
 const practiceModes = [
   {
@@ -71,6 +72,7 @@ const practiceModes = [
 export default function PracticePage() {
   const [mistakesCount, setMistakesCount] = useState(0);
   const { user } = useAuth();
+  const { playSound } = useSound();
 
   useEffect(() => {
     if (user) loadMistakes();
@@ -105,7 +107,7 @@ export default function PracticePage() {
         <StaggerContainer className="space-y-4">
           {practiceModes.map((mode) => (
             <StaggerItem key={mode.href}>
-              <Link href={mode.href}>
+              <Link href={mode.href} onClick={() => playSound("pageTransition")}>
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
@@ -130,7 +132,7 @@ export default function PracticePage() {
           {/* Review Mistakes */}
           {user && mistakesCount > 0 && (
             <StaggerItem>
-              <Link href="/flashcard?mode=mistakes">
+              <Link href="/flashcard?mode=mistakes" onClick={() => playSound("pageTransition")}>
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
@@ -159,7 +161,7 @@ export default function PracticePage() {
 
           {/* Listening */}
           <StaggerItem>
-            <Link href="/listening">
+            <Link href="/listening" onClick={() => playSound("pageTransition")}>
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}

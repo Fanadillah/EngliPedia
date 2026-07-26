@@ -11,6 +11,7 @@ import { createClient } from "@/utils/supabase/client";
 import { awardXp } from "@/lib/gamification";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
+import { useSound } from "@/lib/sound-manager";
 import { useRouter } from "next/navigation";
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ interface ExerciseResult {
 export default function GrammarPracticePage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { playSound } = useSound();
 
   const [phase, setPhase] = useState<Phase>("select");
   const [lessons, setLessons] = useState<GrammarLesson[]>([]);
@@ -192,6 +194,7 @@ export default function GrammarPracticePage() {
   const currentExercise = exercises[currentIndex];
 
   const handleSubmit = () => {
+    playSound("click");
     if (!currentExercise || answerState !== "waiting") return;
 
     let isCorrect = false;
@@ -246,6 +249,7 @@ export default function GrammarPracticePage() {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
     }
+    playSound("sessionComplete");
     setPhase("result");
   };
 

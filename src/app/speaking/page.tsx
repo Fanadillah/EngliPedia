@@ -12,7 +12,9 @@ import type { Word } from "@/types/word";
 import { awardXp, getXpEventMessage } from "@/lib/gamification";
 import { useToast } from "@/components/ui/toast-provider";
 import { Confetti } from "@/components/ui/confetti";
+import { useSound } from "@/lib/sound-manager";
 import { useRouter } from "next/navigation";
+import { playSound } from "@/lib/sound-manager";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -90,6 +92,7 @@ function getScoreLabel(score: number): { label: string; color: string } {
 export default function SpeakingPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { playSound } = useSound();
 
   const [config, setConfig] = useState<SpeakingConfig>({
     questionCount: 10,
@@ -202,6 +205,7 @@ export default function SpeakingPage() {
     recognition.onstart = () => {
       setIsListening(true);
       setSpokenText("");
+      playSound("click");
     };
 
     recognition.onresult = (event: any) => {
@@ -250,12 +254,14 @@ export default function SpeakingPage() {
 
     if (score >= 70) {
       awardXp("learn_flashcard");
+      playSound("correct");
       showToast({
         type: "success",
         message: `✅ ${getScoreLabel(score).label} (+5 XP)`,
         duration: 1500,
       });
     } else {
+      playSound("wrong");
       showToast({
         type: "info",
         message: `🎤 ${getScoreLabel(score).label}: "${spokenText || "(kosong)"}"`,
@@ -281,7 +287,8 @@ export default function SpeakingPage() {
     const totalXp = correctCount * 5 + 30 + (isPerfect ? 25 : 0);
 
     awardXp("complete_session");
-
+    playSound("sessionDone");
+    // Check for new achievements
     if (isPerfect) {
       awardXp("master_word");
       setShowConfetti(true);
@@ -293,6 +300,7 @@ export default function SpeakingPage() {
       });
     }
 
+    playSound("sessionComplete");
     setPhase("result");
   };
 
