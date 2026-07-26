@@ -27,6 +27,7 @@ import { motion } from "motion/react";
 import { awardXp, getXpEventMessage } from "@/lib/gamification";
 import { useToast } from "@/components/ui/toast-provider";
 import { getCardForWord, getMasteryLevel, getMasteryStatus } from "@/lib/spaced-repetition";
+import { cacheWord, getCachedWord } from "@/lib/offline-cache";
 
 export default function WordDetailPage() {
   const params = useParams();
@@ -45,12 +46,27 @@ export default function WordDetailPage() {
 
   const loadWord = async () => {
     setLoading(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("words")
-      .select("*")
-      .eq("id", Number(params.id))
-      .single<Word>();
+    const wordId = Number(params.id);
+
+    // Try online fetch first
+    let data: Word | null = null;
+    try {
+      const supabase = createClient();
+      const { data: fetched } = await supabase
+        .from("words")
+        .select("*")
+        .eq("id", wordId)
+        .single<Word>();
+      data = fetched;
+
+      // Cache to IndexedDB for offline use
+      if (data) {
+        cacheWord(data as unknown as Record<string, unknown>);
+      }
+    } catch {
+      // Offline or error — try IndexedDB
+      data = (await getCachedWord(wordId)) as Word | null;
+    }
 
     if (data) {
       setWord(data);

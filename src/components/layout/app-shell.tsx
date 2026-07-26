@@ -5,6 +5,8 @@ import { AnimatePresence } from "motion/react";
 import { Sidebar } from "./sidebar";
 import { BottomNav } from "./bottom-nav";
 import { PageTransition } from "@/components/ui/motion-components";
+import { OfflineIndicator } from "@/components/ui/offline-indicator";
+import { SWRegister } from "@/components/ui/sw-register";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -29,6 +31,12 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Mobile bottom nav */}
       <BottomNav />
+
+      {/* Offline indicator */}
+      <OfflineIndicator />
+
+      {/* Service Worker registration */}
+      <SWRegister />
     </div>
   );
 }
