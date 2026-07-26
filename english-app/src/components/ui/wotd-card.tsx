@@ -31,8 +31,10 @@ export function WotdCard({ word, masteryValue = 0, onNext, onPrev }: WotdCardPro
 
   return (
     <motion.div
+      key={word.word}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
       className="rounded-3xl p-6 text-white shadow-xl relative overflow-hidden"
       style={{ background: gradient }}
     >
@@ -60,15 +62,12 @@ export function WotdCard({ word, masteryValue = 0, onNext, onPrev }: WotdCardPro
       </div>
 
       {/* Decorative Sparkles */}
-      <div className="absolute top-2 right-2 opacity-50">
+      <div className="absolute top-12 right-4 opacity-50">
         <Sparkles className="w-5 h-5 animate-pulse" />
       </div>
       
-      <div className="flex justify-between items-start mb-6">
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                Word of the Day
-              </div>
-              <div className="flex items-center gap-2">
+      <div className="flex justify-end items-start mb-6">
+        <div className="flex items-center gap-2">
             <ProgressRing 
                 value={masteryValue} 
                 maxValue={100} 

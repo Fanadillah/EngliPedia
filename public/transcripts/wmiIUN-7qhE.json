@@ -4,37 +4,47 @@
     {
       "text": "Everyone, Bonnie made a friend in class!",
       "start": 1.001,
-      "end": 2.794
+      "end": 3.094
     },
     {
       "text": "She's already making friends.",
       "start": 2.794,
-      "end": 4.671
+      "end": 4.971
     },
     {
       "text": "No, no she literally made a new friend.",
       "start": 4.671,
-      "end": 7.507
+      "end": 7.8069999999999995
     },
     {
-      "text": "I want you to meet...Forky!",
+      "text": "I want you to meet... Forky!",
       "start": 7.507,
-      "end": 10.135
+      "end": 10.435
+    },
+    {
+      "text": "Hello! Hi!",
+      "start": 11.136,
+      "end": 12.395
     },
     {
       "text": "He's a spork!",
       "start": 13.096,
-      "end": 14.597
+      "end": 14.897
     },
     {
       "text": "Yes, yeah, I know.",
       "start": 14.597,
-      "end": 15.724
+      "end": 16.024
     },
     {
-      "text": "Forky is the most important toy to Bonnie right now.",
-      "start": 15.724,
-      "end": 20.478
+      "text": "Forky is the most important toy",
+      "start": 17.726,
+      "end": 18.768
+    },
+    {
+      "text": "To Bonnie right now.",
+      "start": 18.768,
+      "end": 20.486
     },
     {
       "text": "We all have to make sure nothing happens to him.",
@@ -42,67 +52,62 @@
       "end": 23.072000000000003
     },
     {
-      "text": "We have a situation.",
+      "text": "Woody! We have a situation.",
       "start": 23.857,
       "end": 25.366
     },
     {
       "text": "I am not a toy.",
       "start": 26.151,
-      "end": 27.318
+      "end": 27.618000000000002
     },
     {
       "text": "I was made for soup, salad, maybe chili, and then the trash!",
       "start": 27.318,
-      "end": 31.197
+      "end": 31.497000000000003
     },
     {
-      "text": "We've gotta get Forky!",
+      "text": "Buzz! We've gotta get Forky!",
       "start": 33.074,
-      "end": 34.409
+      "end": 34.708999999999996
     },
     {
       "text": "Am I alive?",
       "start": 39.539,
-      "end": 40.582
+      "end": 40.882
     },
     {
       "text": "You're Bonnie's toy.",
       "start": 40.582,
-      "end": 41.958
+      "end": 42.257999999999996
     },
     {
-      "text": "You are going to help create happy memories that",
+      "text": "You are going to help create happy memories that will last",
       "start": 41.958,
+      "end": 45.260999999999996
+    },
+    {
+      "text": "For the rest of her life!",
+      "start": 44.961,
       "end": 47.388
     },
     {
-      "text": "Will last for the rest of her life!",
-      "start": 41.958,
-      "end": 47.388
-    },
-    {
-      "text": "Forky, come on!",
+      "text": "Bo? Forky, come on!",
       "start": 53.178,
       "end": 55.145999999999994
     },
     {
-      "text": "Hi there!",
+      "text": "Hi there! My name is Gabby Gabby.",
       "start": 56.431,
-      "end": 58.391
-    },
-    {
-      "text": "My name is Gabby Gabby.",
-      "start": 56.431,
-      "end": 58.391
+      "end": 58.690999999999995
     },
     {
       "text": "We can't stay.",
       "start": 58.391,
-      "end": 59.392
+      "end": 59.69199999999999
     },
     {
-      "text": "Haha, yes you can.",
+      "text": "Haha, yes you can. Boys?",
       "start": 59.392,
       "end": 62.07
     },
@@ -112,69 +117,74 @@
       "end": 65.365
     },
     {
-      "text": "What are you doing here?",
+      "text": "Bo! What are you doing here?",
       "start": 66.024,
-      "end": 67.525
+      "end": 67.825
     },
     {
       "text": "No time to explain.",
       "start": 67.525,
-      "end": 68.902
+      "end": 69.202
     },
     {
       "text": "Come with me.",
       "start": 68.902,
-      "end": 69.569
+      "end": 69.869
     },
     {
       "text": "We need to get back to our kid.",
       "start": 69.569,
-      "end": 70.904
+      "end": 71.204
     },
     {
       "text": "Sheriff Woody, always comin' to the rescue.",
       "start": 70.904,
-      "end": 74.532
+      "end": 74.832
     },
     {
       "text": "Bonnie needs Forky.",
       "start": 74.532,
-      "end": 75.784
+      "end": 76.08399999999999
     },
     {
-      "text": "Woody, who needs a kid's room when you can have all of this...?",
+      "text": "Woody, who needs a kid's room",
       "start": 75.784,
-      "end": 80.872
+      "end": 77.869
+    },
+    {
+      "text": "When you can have all of this...?",
+      "start": 77.869,
+      "end": 81.172
     },
     {
       "text": "Woody, aren't we goin' to Bonnie?",
       "start": 81.831,
-      "end": 84.375
+      "end": 84.425
     },
     {
       "text": "We have to find them.",
-      "start": 84.375,
-      "end": 87.003
+      "start": 86.044,
+      "end": 87.303
     },
     {
       "text": "What do we do, Buzz?",
       "start": 87.003,
-      "end": 88.004
+      "end": 88.304
     },
     {
       "text": "What would Woody do?",
       "start": 88.004,
-      "end": 89.005
+      "end": 89.305
     },
     {
       "text": "Jump out of a moving vehicle.",
       "start": 89.005,
-      "end": 90.173
+      "end": 90.306
     },
     {
       "text": "Let's go!",
       "start": 90.173,
-      "end": 91.216
+      "end": 91.516
     },
     {
       "text": "If you gotta go, you gotta go.",
@@ -182,29 +192,34 @@
       "end": 93.226
     },
     {
-      "text": "You know, you've handled this lost toy life better than I could.",
+      "text": "You know, you've handled",
       "start": 97.097,
-      "end": 100.934
+      "end": 98.723
+    },
+    {
+      "text": "This lost toy life better than I could.",
+      "start": 98.723,
+      "end": 101.234
     },
     {
       "text": "Open your eyes Woody.",
       "start": 100.934,
-      "end": 102.685
+      "end": 102.985
     },
     {
       "text": "There's plenty of kids out there.",
       "start": 102.685,
-      "end": 104.646
+      "end": 104.946
     },
     {
       "text": "Sometimes change can be good.",
       "start": 104.646,
-      "end": 105.897
+      "end": 106.197
     },
     {
       "text": "You can't teach this old toy new tricks.",
       "start": 105.897,
-      "end": 108.024
+      "end": 108.324
     },
     {
       "text": "You'd be surprised.",
@@ -224,10 +239,10 @@
     {
       "text": "On my way Woody!",
       "start": 117.117,
-      "end": 118.159
+      "end": 118.459
     },
     {
-      "text": "To infinity...and beyond!",
+      "text": "To infinity... and beyond!",
       "start": 118.159,
       "end": 120.503
     },
@@ -239,17 +254,17 @@
     {
       "text": "Kids lose their toys every day.",
       "start": 127.669,
-      "end": 129.629
+      "end": 129.929
     },
     {
       "text": "I was made to help a child.",
       "start": 129.629,
-      "end": 131.714
+      "end": 132.014
     },
     {
       "text": "I don't remember it being this hard.",
       "start": 131.714,
-      "end": 133.55
+      "end": 133.85000000000002
     },
     {
       "text": "Somebody's whispering in your ear...",
@@ -289,7 +304,7 @@
       "duration": 0.834
     },
     {
-      "text": "I want you to meet...Forky!",
+      "text": "I want you to meet... Forky!",
       "start": 7.507,
       "duration": 2.628
     },
@@ -534,7 +549,7 @@
       "duration": 1.042
     },
     {
-      "text": "To infinity...and beyond!",
+      "text": "To infinity... and beyond!",
       "start": 118.159,
       "duration": 2.044
     },

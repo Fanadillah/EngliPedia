@@ -7,8 +7,13 @@
       "end": 1.68
     },
     {
-      "text": "...I was arrested for failure to pay parking tickets.",
-      "start": 2,
+      "text": "...I was arrested for failure to",
+      "start": 2.0,
+      "end": 4.199999999999999
+    },
+    {
+      "text": "Pay parking tickets.",
+      "start": 4.199999999999999,
       "end": 5.3
     },
     {
@@ -17,14 +22,24 @@
       "end": 6.92
     },
     {
-      "text": "And I ran all the way here from the Polk Station, the police station.",
-      "start": 8,
-      "end": 11.3
+      "text": "And I ran all the way",
+      "start": 8.0,
+      "end": 9.285714285714285
+    },
+    {
+      "text": "Here from the Polk Station, the",
+      "start": 9.285714285714285,
+      "end": 10.571428571428571
+    },
+    {
+      "text": "Police station.",
+      "start": 10.571428571428571,
+      "end": 11.0
     },
     {
       "text": "What were you doing before you were arrested?",
       "start": 11.4,
-      "end": 14.12
+      "end": 14.3
     },
     {
       "text": "I was painting my apartment.",
@@ -44,12 +59,17 @@
     {
       "text": "Jay says you're pretty determined.",
       "start": 21.44,
-      "end": 23.12
+      "end": 23.16
     },
     {
-      "text": "He's been waiting outside the front of the building...",
+      "text": "He's been waiting outside the front",
       "start": 23.12,
-      "end": 25.82
+      "end": 24.733333333333334
+    },
+    {
+      "text": "Of the building...",
+      "start": 24.733333333333334,
+      "end": 25.54
     },
     {
       "text": "...with some 40-pound gizmo for over a month.",
@@ -59,37 +79,37 @@
     {
       "text": "- He said you're smart.",
       "start": 28.26,
-      "end": 31.640000000000004
+      "end": 30.1
     },
     {
       "text": "- Well, I like to think so.",
-      "start": 28.26,
-      "end": 31.640000000000004
+      "start": 29.8,
+      "end": 31.64
     },
     {
-      "text": "- And you want to learn this business",
+      "text": "- And you want to learn this business?",
       "start": 32.04,
-      "end": 34.94
+      "end": 33.63999999999999
     },
     {
       "text": "- Yes, sir, I wanna learn this business.",
-      "start": 32.04,
-      "end": 34.94
+      "start": 33.339999999999996,
+      "end": 34.93999999999999
     },
     {
       "text": "Have you already started learning on your own?",
       "start": 35.24,
-      "end": 37.28
+      "end": 37.44
     },
     {
       "text": "- Jay?",
       "start": 39.48,
-      "end": 41.16
+      "end": 40.46999999999999
     },
     {
       "text": "- Yes, sir.",
-      "start": 39.48,
-      "end": 41.16
+      "start": 40.169999999999995,
+      "end": 41.15999999999999
     },
     {
       "text": "How many times have you seen Chris?",
@@ -97,27 +117,22 @@
       "end": 43.62
     },
     {
-      "text": "I don't know.",
-      "start": 44.12,
-      "end": 47.019999999999996
-    },
-    {
-      "text": "One too many, apparently.",
+      "text": "I don't know. One too many, apparently.",
       "start": 44.12,
       "end": 47.019999999999996
     },
     {
       "text": "- Was he ever dressed like this?",
       "start": 47.34,
-      "end": 49.72
+      "end": 48.68
     },
     {
       "text": "- No.",
-      "start": 47.34,
+      "start": 48.38,
       "end": 49.72
     },
     {
-      "text": "Jacket and tie.",
+      "text": "No. Jacket and tie.",
       "start": 49.84,
       "end": 52.32
     },
@@ -129,22 +144,22 @@
     {
       "text": "- High school?",
       "start": 57.1,
-      "end": 59.54
+      "end": 58.53
     },
     {
       "text": "- Yes, sir.",
-      "start": 57.1,
-      "end": 59.54
+      "start": 58.230000000000004,
+      "end": 59.660000000000004
     },
     {
       "text": "- How many in the class?",
       "start": 59.54,
-      "end": 62.379999999999995
+      "end": 61.11
     },
     {
       "text": "- Twelve.",
-      "start": 59.54,
-      "end": 62.379999999999995
+      "start": 60.81,
+      "end": 62.38
     },
     {
       "text": "It was a small town.",
@@ -154,17 +169,27 @@
     {
       "text": "- I'll say.",
       "start": 64.86,
-      "end": 67.5
+      "end": 66.46
     },
     {
-      "text": "- But I was also first in my radar class...",
-      "start": 64.86,
-      "end": 67.5
+      "text": "- But I was also first",
+      "start": 66.16,
+      "end": 66.94
     },
     {
-      "text": "...in the Navy, and that was a class of 20.",
+      "text": "In my radar class...",
+      "start": 66.94,
+      "end": 67.46
+    },
+    {
+      "text": "...in the Navy, and that was",
       "start": 67.5,
-      "end": 71.53999999999999
+      "end": 69.744
+    },
+    {
+      "text": "A class of 20.",
+      "start": 69.744,
+      "end": 71.24
     },
     {
       "text": "Can I say something?",
@@ -177,9 +202,14 @@
       "end": 78.56
     },
     {
-      "text": "...if you ask me a question, and I don't know the answer...",
+      "text": "...if you ask me a question,",
       "start": 78.98,
-      "end": 82.08
+      "end": 80.38000000000001
+    },
+    {
+      "text": "And I don't know the answer...",
+      "start": 80.38000000000001,
+      "end": 81.78
     },
     {
       "text": "...I'm gonna tell you that I don't know.",
@@ -192,9 +222,14 @@
       "end": 86.17999999999999
     },
     {
-      "text": "I know how to find the answer, and I will find the answer.",
+      "text": "I know how to find the",
       "start": 86.42,
-      "end": 91.06
+      "end": 88.42307692307692
+    },
+    {
+      "text": "Answer, and I will find the",
+      "start": 88.42307692307692,
+      "end": 90.42615384615385
     },
     {
       "text": "Is that fair enough?",
@@ -202,9 +237,14 @@
       "end": 93.99999999999999
     },
     {
-      "text": "What would you say if a guy walked in for an interview...",
+      "text": "What would you say if a",
       "start": 98.1,
-      "end": 101.88
+      "end": 99.92999999999999
+    },
+    {
+      "text": "Guy walked in for an interview...",
+      "start": 99.92999999999999,
+      "end": 101.75999999999999
     },
     {
       "text": "...without a shirt on...",
@@ -212,12 +252,7 @@
       "end": 103.44
     },
     {
-      "text": "...and I hired him?",
-      "start": 103.92,
-      "end": 107.1
-    },
-    {
-      "text": "What would you say?",
+      "text": "...and I hired him? What would you say?",
       "start": 103.92,
       "end": 107.1
     },
@@ -284,14 +319,24 @@
       "duration": 2.1
     },
     {
-      "text": "- He said you're smart. - Well, I like to think so.",
+      "text": "- He said you're smart.",
       "start": 28.26,
-      "duration": 3.08
+      "duration": 1.54
     },
     {
-      "text": "- And you want to learn this business? - Yes, sir, I wanna learn this business.",
+      "text": "- Well, I like to think so.",
+      "start": 29.8,
+      "duration": 1.54
+    },
+    {
+      "text": "- And you want to learn this business?",
       "start": 32.04,
-      "duration": 2.6
+      "duration": 1.3
+    },
+    {
+      "text": "- Yes, sir, I wanna learn this business.",
+      "start": 33.339999999999996,
+      "duration": 1.3
     },
     {
       "text": "Have you already started learning on your own?",
@@ -299,9 +344,14 @@
       "duration": 1.9
     },
     {
-      "text": "- Jay? - Yes, sir.",
+      "text": "- Jay?",
       "start": 39.48,
-      "duration": 1.38
+      "duration": 0.69
+    },
+    {
+      "text": "- Yes, sir.",
+      "start": 40.169999999999995,
+      "duration": 0.69
     },
     {
       "text": "How many times have you seen Chris?",
@@ -314,9 +364,14 @@
       "duration": 2.6
     },
     {
-      "text": "- Was he ever dressed like this? - No.",
+      "text": "- Was he ever dressed like this?",
       "start": 47.34,
-      "duration": 2.08
+      "duration": 1.04
+    },
+    {
+      "text": "- No.",
+      "start": 48.38,
+      "duration": 1.04
     },
     {
       "text": "No. Jacket and tie.",
@@ -329,14 +384,24 @@
       "duration": 2.9
     },
     {
-      "text": "- High school? - Yes, sir.",
+      "text": "- High school?",
       "start": 57.1,
-      "duration": 2.26
+      "duration": 1.13
     },
     {
-      "text": "- How many in the class? - Twelve.",
+      "text": "- Yes, sir.",
+      "start": 58.230000000000004,
+      "duration": 1.13
+    },
+    {
+      "text": "- How many in the class?",
       "start": 59.54,
-      "duration": 2.54
+      "duration": 1.27
+    },
+    {
+      "text": "- Twelve.",
+      "start": 60.81,
+      "duration": 1.27
     },
     {
       "text": "It was a small town.",
@@ -344,9 +409,14 @@
       "duration": 0.84
     },
     {
-      "text": "- I'll say. - But I was also first in my radar class...",
+      "text": "- I'll say.",
       "start": 64.86,
-      "duration": 2.6
+      "duration": 1.3
+    },
+    {
+      "text": "- But I was also first in my radar class...",
+      "start": 66.16,
+      "duration": 1.3
     },
     {
       "text": "...in the Navy, and that was a class of 20.",

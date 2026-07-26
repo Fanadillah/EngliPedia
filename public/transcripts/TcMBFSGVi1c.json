@@ -3,7 +3,7 @@
   "sentences": [
     {
       "text": "It seems like a thousand years ago...",
-      "start": 1.001,
+      "start": 4.462,
       "end": 7.015
     },
     {
@@ -24,7 +24,7 @@
     {
       "text": "I know I said no more surprises, but...",
       "start": 20.562,
-      "end": 22.772
+      "end": 23.072000000000003
     },
     {
       "text": "I was really hoping to pull off one last one.",
@@ -79,7 +79,7 @@
     {
       "text": "Even if there's a...",
       "start": 77.869,
-      "end": 79.037
+      "end": 79.337
     },
     {
       "text": "Small chance...",
@@ -92,9 +92,9 @@
       "end": 82.548
     },
     {
-      "text": "To everyone who's not in this room to",
+      "text": "To everyone who's not in this room",
       "start": 83.958,
-      "end": 86.844
+      "end": 85.92699999999999
     },
     {
       "text": "We will.",

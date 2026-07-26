@@ -67,7 +67,33 @@ export default function Home() {
   const [wotdMasteryLevel, setWotdMasteryLevel] = useState(0);
   const [wotdMasteryStatus, setWotdMasteryStatus] = useState<"new" | "learning" | "reviewing" | "mastered">("new");
   const [realMasteredCount, setRealMasteredCount] = useState(0);
+  const [wotdPool, setWotdPool] = useState<Word[]>([]);
+  const [wotdIndex, setWotdIndex] = useState(0);
   const { showToast } = useToast();
+
+  const handleNextWotd = () => {
+    const nextIdx = (wotdIndex + 1) % wotdPool.length;
+    setWotdIndex(nextIdx);
+    updateWotdState(wotdPool[nextIdx]);
+  };
+
+  const handlePrevWotd = () => {
+    const prevIdx = (wotdIndex - 1 + wotdPool.length) % wotdPool.length;
+    setWotdIndex(prevIdx);
+    updateWotdState(wotdPool[prevIdx]);
+  };
+
+  const updateWotdState = (wotdWord: Word) => {
+    setWordOfDay(wotdWord);
+    const card = getCardForWord(wotdWord.id);
+    if (card) {
+      setWotdMasteryLevel(getMasteryLevel(card));
+      setWotdMasteryStatus(getMasteryStatus(card));
+    } else {
+      setWotdMasteryLevel(0);
+      setWotdMasteryStatus("new");
+    }
+  };
 
   useEffect(() => {
     // Redirect to onboarding if first visit
@@ -115,18 +141,9 @@ export default function Home() {
       .limit(50);
 
     if (wotd && wotd.length > 0) {
-      const dayIndex = new Date().getDate() % wotd.length;
-      const wotdWord = wotd[dayIndex] as Word;
-      setWordOfDay(wotdWord);
-      // Compute WOTD mastery
-      const card = getCardForWord(wotdWord.id);
-      if (card) {
-        setWotdMasteryLevel(getMasteryLevel(card));
-        setWotdMasteryStatus(getMasteryStatus(card));
-      } else {
-        setWotdMasteryLevel(0);
-        setWotdMasteryStatus("new");
-      }
+      setWotdPool(wotd);
+      setWotdIndex(new Date().getDate() % wotd.length);
+      updateWotdState(wotd[new Date().getDate() % wotd.length]);
     }
 
     // Random words for discovery
@@ -294,7 +311,12 @@ export default function Home() {
 
           {/* Word of the Day */}
           {wordOfDay && (
-            <WotdCard word={wordOfDay} masteryValue={wotdMasteryLevel * 25} />
+            <WotdCard 
+              word={wordOfDay} 
+              masteryValue={wotdMasteryLevel * 25} 
+              onNext={handleNextWotd}
+              onPrev={handlePrevWotd}
+            />
           )}
 
           {/* Quick Stats */}

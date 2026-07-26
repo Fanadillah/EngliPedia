@@ -14,6 +14,15 @@ interface Sentence {
   end: number;
 }
 
+/**
+ * Segment raw transcript segments into proper sentences.
+ * Rules:
+ * - Max 8 words per sentence (user-friendly typing chunks)
+ * - Break on punctuation (.!?)
+ * - Break on long gaps (>1.5s)
+ * - Filter out 1-word sentences
+ * - Fix ellipsis-connected words: "meet...Forky!" → "meet... Forky!"
+ */
 function segmentIntoSentences(segments: TranscriptSegment[]): Sentence[] {
   const sentences: Sentence[] = [];
   let currentWords: string[] = [];
@@ -21,29 +30,48 @@ function segmentIntoSentences(segments: TranscriptSegment[]): Sentence[] {
 
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
-    const text = seg.text.trim();
+    let text = seg.text.trim();
     if (!text) continue;
+
+    // Fix ellipsis-connected words: "meet...Forky" → "meet... Forky"
+    text = text.replace(/([a-zA-Z])\.{3,}([a-zA-Z])/g, '$1... $2');
+    // Fix word!word → word! word
+    text = text.replace(/([a-zA-Z])[!?]+([a-zA-Z])/g, '$1$2 $3');
+
     if (currentWords.length === 0) currentStart = seg.start;
     currentWords.push(text);
+
     const lastChar = text[text.length - 1];
     const isEndOfSentence = ".!?".includes(lastChar);
     const nextSeg = segments[i + 1];
     const gap = nextSeg ? nextSeg.start - (seg.start + seg.duration) : 0;
     const hasLongGap = gap > 1.5;
-    if (isEndOfSentence || hasLongGap) {
+
+    // Force break at 8 words max
+    const wordCount = currentWords.join(" ").split(/\s+/).length;
+    const forcedBreak = wordCount >= 8;
+
+    if (isEndOfSentence || hasLongGap || forcedBreak) {
       const fullText = currentWords.join(" ");
-      sentences.push({
-        text: fullText,
-        start: currentStart,
-        end: Math.min(seg.start + seg.duration + 0.3, nextSeg ? nextSeg.start : seg.start + seg.duration + 0.3),
-      });
+      const end = Math.min(
+        seg.start + seg.duration + 0.3,
+        nextSeg ? nextSeg.start : seg.start + seg.duration + 0.3
+      );
+      sentences.push({ text: fullText, start: currentStart, end });
       currentWords = [];
     }
   }
+
   if (currentWords.length > 0) {
     const lastSeg = segments[segments.length - 1];
-    sentences.push({ text: currentWords.join(" "), start: currentStart, end: lastSeg.start + lastSeg.duration + 0.3 });
+    sentences.push({
+      text: currentWords.join(" "),
+      start: currentStart,
+      end: lastSeg.start + lastSeg.duration + 0.3,
+    });
   }
+
+  // Remove 1-word sentences (too short to type)
   return sentences.filter((s) => s.text.split(/\s+/).length >= 2);
 }
 
