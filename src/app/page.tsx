@@ -312,7 +312,9 @@ export default function Home() {
           {/* Word of the Day */}
           {wordOfDay && (
             <WotdCard 
-              word={wordOfDay} 
+              word={wordOfDay}
+              onNext={handleNextWotd}
+              onPrev={handlePrevWotd}
             />
           )}
 
