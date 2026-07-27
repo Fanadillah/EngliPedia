@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Home, Search, BookOpen, Heart, User, Trophy, BarChart3, Brain, X, GraduationCap, Target, Headphones, Film } from "lucide-react";
+import { Home, Search, BookOpen, Heart, User, Trophy, BarChart3, Brain, X, GraduationCap, Target, Headphones, Film, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -19,6 +19,7 @@ const rightItems = [
 
 const practiceItems = [
   { href: "/practice", icon: Brain, label: "Latihan", color: "text-violet-500 bg-violet-50 dark:bg-violet-950/30" },
+  { href: "/ai-tutor", icon: Sparkles, label: "AI Tutor", color: "text-pink-500 bg-pink-50 dark:bg-pink-950/30" },
   { href: "/statistics", icon: BarChart3, label: "Statistik", color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
   { href: "/listening", icon: Headphones, label: "Listening", color: "text-orange-500 bg-orange-50 dark:bg-orange-950/30" },
   { href: "/video-learning", icon: Film, label: "Video", color: "text-red-500 bg-red-50 dark:bg-red-950/30" },

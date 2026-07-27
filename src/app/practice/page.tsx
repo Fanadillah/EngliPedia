@@ -32,6 +32,15 @@ const practiceModes = [
     iconColor: "text-violet-500",
   },
   {
+    href: "/ai-tutor",
+    icon: Sparkles,
+    title: "AI Tutor",
+    description: "Chat dengan AI untuk latihan conversation",
+    color: "from-pink-500 to-rose-500",
+    bgColor: "bg-pink-50 dark:bg-pink-950/30",
+    iconColor: "text-pink-500",
+  },
+  {
     href: "/quiz",
     icon: Brain,
     title: "Quiz",
