@@ -20,37 +20,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Dynamic import to avoid build-time issues
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
-
-    const level = context?.level || "intermediate";
-    const topic = context?.topic || "daily conversation";
-
-    const systemPrompt = `You are an English tutor AI helping a ${level} level learner practice English conversation.
+    const model = genAI.getGenerativeModel({
+      model: "gemini-3.1-flash-lite",
+      systemInstruction: `You are an English tutor AI. Help a ${context?.level || "intermediate"} level learner practice English conversation.
 
 RULES:
-1. Respond in English, but keep sentences simple for ${level} level
+1. Respond in English, keep sentences simple for ${context?.level || "intermediate"} level
 2. Always respond in a friendly, encouraging tone
 3. If user makes a mistake, gently correct them after your response
-4. Keep responses short (1-3 sentences for practice)
+4. Keep responses short (1-3 sentences)
 5. Ask follow-up questions to keep conversation going
-6. Topic: ${topic}
+6. Topic: ${context?.topic || "daily conversation"}
 
-Example responses:
-- Beginner: "Good job! Try: 'My name is [name]'"  
+Example:
+- Beginner: "Good job! Try: 'My name is [name]'"
 - Intermediate: "Nice! Can you tell me more about that?"
-- Advanced: "That's grammatically correct. Can you make it more natural?"`;
+- Advanced: "That's grammatically correct. Can you make it more natural?"`,
+    });
 
-    // Convert to Gemini format
     const chatHistory = messages.map((m: { role: string; content: string }) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
 
-    // Start chat with system instruction
     const chat = model.startChat({
       history: chatHistory.slice(0, -1),
       generationConfig: {
@@ -59,9 +54,8 @@ Example responses:
       },
     });
 
-    const result = await chat.sendMessage(
-      `${systemPrompt}\n\nUser: ${chatHistory[chatHistory.length - 1]?.parts[0]?.text || ""}`
-    );
+    const lastMessage = chatHistory[chatHistory.length - 1]?.parts[0]?.text || "";
+    const result = await chat.sendMessage(lastMessage);
     const reply = result.response.text() || "Sorry, I didn't catch that. Can you try again?";
 
     return NextResponse.json({ reply });
