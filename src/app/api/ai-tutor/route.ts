@@ -11,54 +11,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
 
     if (!apiKey) {
-      // Fallback: smart simulation when no API key
-      const lastUserMsg = messages
-        .filter((m: { role: string }) => m.role === "user")
-        .pop()?.content || "";
-
-      const topic = context?.topic || "daily conversation";
-
-      const fallbackReplies: Record<string, string[]> = {
-        daily: [
-          "That's interesting! Tell me more about that.",
-          "Good English! Can you use that in a longer sentence?",
-          "Nice try! Keep practicing!",
-          "Great job! Now try answering: 'Why do you think so?'",
-        ],
-        travel: [
-          "Where are you traveling to? Have you been there before?",
-          "Do you need help checking in at the airport?",
-          "That sounds like a great trip! What will you do there?",
-        ],
-        food: [
-          "What's your favorite food? Can you describe the taste?",
-          "Would you like to order something else?",
-          "Have you tried Indonesian food? It's delicious!",
-        ],
-        shopping: [
-          "How much does that cost? Do you think it's worth the price?",
-          "Would you like to try a different color or size?",
-          "Do you need a receipt for that?",
-        ],
-        work: [
-          "Can you describe your job responsibilities?",
-          "What skills do you think are important for that role?",
-          "That's a great answer for an interview!",
-        ],
-        interview: [
-          "Can you tell me about your work experience?",
-          "What are your strengths and weaknesses?",
-          "Why do you want to work for this company?",
-        ],
-      };
-
-      const replies = fallbackReplies[topic] || fallbackReplies.daily;
-      const reply = replies[Math.floor(Math.random() * replies.length)];
-
-      return NextResponse.json({ reply });
+      return NextResponse.json(
+        { error: "AI API key not configured. Please set GOOGLE_AI_API_KEY." },
+        { status: 500 }
+      );
     }
 
     // Dynamic import to avoid build-time issues
