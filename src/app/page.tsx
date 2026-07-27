@@ -316,16 +316,8 @@ export default function Home() {
           {wordOfDay && (
             <WotdCard 
               word={wordOfDay}
-              onNext={handleNextWotd}
-              onPrev={handlePrevWotd}
             />
           )}
-
-          {/* Streak Calendar */}
-          <StreakCalendar
-            streak={gamification.streak}
-            lastActiveDate={gamification.lastActiveDate || new Date().toISOString().split("T")[0]}
-          />
 
           {/* Quick Stats */}
           <StaggerContainer className="grid grid-cols-4 gap-2.5">
