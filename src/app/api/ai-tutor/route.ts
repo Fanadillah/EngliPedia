@@ -19,15 +19,14 @@ export async function POST(req: NextRequest) {
         .filter((m: { role: string }) => m.role === "user")
         .pop()?.content || "";
 
-      const level = context?.level || "intermediate";
       const topic = context?.topic || "daily conversation";
 
       const fallbackReplies: Record<string, string[]> = {
         daily: [
-          `That's interesting! Tell me more about that.`,
-          `Good English! Can you use that in a longer sentence?`,
-          `Nice try! Try saying it this way: "${lastUserMsg}" but with more context.`,
-          `Great job! Now try answering: "Why do you think so?"`,
+          "That's interesting! Tell me more about that.",
+          "Good English! Can you use that in a longer sentence?",
+          "Nice try! Keep practicing!",
+          "Great job! Now try answering: 'Why do you think so?'",
         ],
         travel: [
           "Where are you traveling to? Have you been there before?",
@@ -66,7 +65,7 @@ export async function POST(req: NextRequest) {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash-lite" });
 
     const level = context?.level || "intermediate";
     const topic = context?.topic || "daily conversation";
@@ -94,7 +93,7 @@ Example responses:
 
     // Start chat with system instruction
     const chat = model.startChat({
-      history: chatHistory.slice(0, -1), // Exclude last user message
+      history: chatHistory.slice(0, -1),
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 500,
