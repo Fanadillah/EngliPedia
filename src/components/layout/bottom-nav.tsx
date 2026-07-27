@@ -13,6 +13,7 @@ const leftItems = [
 ];
 
 const rightItems = [
+  { href: "/saved", icon: Heart, label: "Tersimpan" },
   { href: "/profile", icon: User, label: "Profil" },
 ];
 
