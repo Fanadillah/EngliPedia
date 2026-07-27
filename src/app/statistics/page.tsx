@@ -11,6 +11,7 @@ import { useAuth } from "@/components/auth/auth-context";
 import type { GamificationState } from "@/lib/gamification";
 import { getSavedIds } from "@/lib/saved-words";
 import { createClient } from "@/utils/supabase/client";
+import { StreakCalendar } from "@/components/ui/StreakCalendar";
 
 // ─── SVG Mini Chart ─────────────────────────────────────────────────────
 

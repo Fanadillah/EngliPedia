@@ -25,6 +25,7 @@ import { createClient } from "@/utils/supabase/client";
 import type { Word } from "@/types/word";
 import { OrganicBlobs } from "@/components/ui/organic-blobs";
 import { AnimatedWord, FadeIn, SlideUp, StaggerContainer, StaggerItem } from "@/components/ui/motion-components";
+import { motion } from "motion/react";
 import { WotdCard } from "@/components/word/wotd-card";
 import { StreakCalendar } from "@/components/ui/StreakCalendar";
 import { ProgressRing } from "@/components/ui/progress-ring";
